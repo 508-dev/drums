@@ -64,3 +64,9 @@ their exports, which back `docs/musicxml-style.md`. With MuseScore 4 installed
 (`mscore`, or set `MSCORE`), `./scripts/export-musescore-fixtures.sh`
 re-exports them headlessly. Then `./scripts/test.sh` checks that the style
 guide's facts still hold. CI doesn't have MuseScore and only runs the checks.
+
+## Built-in lessons
+
+Lessons are written in MuseScore 4 (`lessons/builtin/*.mscz`) and exported
+to the app's assets with `./scripts/export-lessons.sh`. See
+[`lessons.md`](lessons.md).
