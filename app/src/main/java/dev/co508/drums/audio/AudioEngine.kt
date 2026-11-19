@@ -4,7 +4,7 @@ package dev.co508.drums.audio
  * A continuous stereo output stream that plays [Sound]s at exact sample frames.
  *
  * Frame numbers count output frames from the moment [start] was called: frame 0
- * is the first frame the engine renders. Every [start] begins a new stream at
+ * is the first frame the engine renders. Every [start] or automatic output replacement begins a stream at
  * frame 0. See DECISIONS.md, "One Audio Clock" and "The Mixer Pulls Events,
  * One Block At A Time".
  */
@@ -28,10 +28,16 @@ interface AudioEngine : OutputTimestampSource {
 
     /** A snapshot of the engine's counters, for diagnostics. May be called from any thread. */
     fun stats(): AudioEngineStats
+
+    /** Explicit output recreation (also used by debug diagnostics); never starts stopped playback. */
+    fun requestOutputRestart() = Unit
 }
 
 /** Where the output stream's playback actually is, for the audio clock. */
 fun interface OutputTimestampSource {
+    /** Changes before a replacement stream renders frame 0; invalidates cached clock anchors. */
+    val streamGeneration: Long get() = 0L
+
     /**
      * Fills [out] with a recent (frame, time) pair: the output frame that was
      * presented at the speaker or headphone jack at [OutputTimestamp.nanoTime].
@@ -115,8 +121,12 @@ data class AudioEngineStats(
     val framesRendered: Long,
     val mixer: MixerStats,
     /**
-     * The negative AudioTrack error code that stopped the mixer thread, or 0.
-     * After an error the engine is silent until [AudioEngine.stop] and [AudioEngine.start].
+     * A terminal negative error after bounded recovery attempts, otherwise 0.
      */
     val writeError: Int,
+    val recovering: Boolean = false,
+    val recoveryAttempts: Int = 0,
+    val recoveries: Int = 0,
+    val lastWriteError: Int = 0,
+    val lastRecoveryReason: String? = null,
 )

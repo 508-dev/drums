@@ -34,9 +34,12 @@ class PlaybackHistoryTest {
         override var isRunning = false
         var frame = 0L
         var error = 0
+        var starts = 0
 
         override fun start() {
             isRunning = true
+            starts++
+            error = 0
         }
 
         override fun stop() {
@@ -158,6 +161,20 @@ class PlaybackHistoryTest {
             assertFalse(session.isPlaying)
             session.close()
         }
+        assertEquals(2, rows.size)
+    }
+
+    @Test fun transientRecoveryDoesNotEndRunButExhaustionStopsAndExplicitPlayRetries() {
+        assertTrue(session.play(settings, PracticeIdentity("pack", "recover")))
+        session.checkOutput()
+        assertTrue(session.isPlaying)
+        engine.error = -6
+        session.checkOutput()
+        assertFalse(session.isPlaying)
+        assertEquals(1, rows.size)
+        assertTrue(session.play(settings, PracticeIdentity("pack", "retry")))
+        assertEquals(2, engine.starts)
+        session.close()
         assertEquals(2, rows.size)
     }
 }

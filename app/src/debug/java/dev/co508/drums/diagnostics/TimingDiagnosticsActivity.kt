@@ -88,8 +88,8 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         val kit = (application as DrumsApp).kit
         val controller = DiagnosticsController(session, kit, lessons)
         if (packErrors.isNotEmpty()) controller.message = packErrors.joinToString("\n")
-        session.onInterrupted = {
-            controller.onInterrupted()
+        session.onInterrupted = { reason ->
+            controller.onInterrupted(reason)
         }
         val exitTestSeconds =
             if (intent.getBooleanExtra(EXTRA_EXIT_TEST, false)) {
@@ -160,7 +160,9 @@ private class DiagnosticsController(
     var message by mutableStateOf<String?>(null)
     var visualOffsetMillis by mutableFloatStateOf(0f)
     var statsText by mutableStateOf("")
+    var outputStats by mutableStateOf(session.engine.stats())
     var frameNanos by mutableLongStateOf(0L)
+    var lastPosition = Double.NaN
 
     val frameDrops = FrameDropCounter()
     var refreshRateHz = 60f
@@ -201,11 +203,16 @@ private class DiagnosticsController(
         stopAtNanos = 0
     }
 
-    fun onInterrupted() {
+    fun onInterrupted(reason: PlaybackSession.StopReason) {
         log("interrupted")
         playing = false
         stopAtNanos = 0
-        message = "Stopped by the system (focus lost or headphones unplugged)"
+        message =
+            if (reason == PlaybackSession.StopReason.ENGINE_ERROR) {
+                "Audio recovery failed. Press Play to try again."
+            } else {
+                "Stopped by the system (focus lost or headphones unplugged)"
+            }
     }
 
     fun runExitTest(seconds: Int) {
@@ -266,6 +273,8 @@ private class DiagnosticsController(
 
     /** Called a few times a second: refreshes the numbers, logs, and ends a timed run. */
     fun tick() {
+        session.checkOutput()
+        outputStats = session.engine.stats()
         val now = SystemClock.elapsedRealtimeNanos()
         statsText = statsReport(now)
         if (playing && now - lastLogNanos >= LOG_INTERVAL_NANOS) {
@@ -299,6 +308,9 @@ private class DiagnosticsController(
                 "burst=${e.framesPerBurst} rate=${e.sampleRate} lowLatency=${e.lowLatencyGranted} " +
                 "route=\"${e.outputDevice}\" late=${e.mixer.lateEvents} dropped=${e.mixer.droppedEvents} " +
                 "stolen=${e.mixer.stolenVoices} peakVoices=${e.mixer.peakVoices} writeError=${e.writeError} " +
+                "recovering=${e.recovering} recoveries=${e.recoveries} attempts=${e.recoveryAttempts} " +
+                "lastWriteError=${e.lastWriteError} recoveryReason=\"${e.lastRecoveryReason}\" " +
+                "generation=${session.engine.streamGeneration} " +
                 "clockUpdates=${c.updates} jitterMeanMs=${fmt(c.meanAbsErrorMillis)} " +
                 "jitterMaxMs=${fmt(c.maxAbsErrorMillis)} uiFrames=${frameDrops.frames} " +
                 "uiDropped=${frameDrops.dropped} uiWorstGapMs=${fmt(frameDrops.worstGapMillis)} " +
@@ -387,6 +399,7 @@ private fun DiagnosticsScreen(
             Metronome(controller, Modifier.fillMaxWidth().height(200.dp))
             Controls(controller)
             controller.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            RecoveryStatus(controller.outputStats)
             Text(controller.statsText, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 15.sp)
         }
     }
@@ -410,7 +423,8 @@ private fun Metronome(
     Canvas(modifier) {
         val frameNanos = controller.frameNanos // Read in the draw phase: redraws every frame.
         val frame = session.clock.visualFrameAt(frameNanos)
-        val position = if (frame.isNaN()) Double.NaN else session.transport.positionAt(frame)
+        if (frame.isFinite()) controller.lastPosition = session.transport.positionAt(frame)
+        val position = controller.lastPosition
         val pattern = session.transport.settings?.pattern
         val beatsPerBar = pattern?.countInBeats ?: 4
         val beatQuarters = pattern?.beatQuarters ?: 1.0
@@ -470,6 +484,7 @@ private fun Controls(controller: DiagnosticsController) {
         OutlinedButton(onClick = { controller.runExitTest(0) }) { Text("300 BPM 32nds") }
         OutlinedButton(onClick = controller::resetStats) { Text("Reset stats") }
     }
+    OutlinedButton(onClick = { controller.session.engine.requestOutputRestart() }) { Text("Recreate output") }
 
     Text("Tempo ${controller.beatsPerMinute.toInt()} BPM")
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
