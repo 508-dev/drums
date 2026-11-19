@@ -90,6 +90,8 @@ class PlaybackSession(
 
     /** Starts the output stream, silent until [play]. Does nothing if already open. */
     fun open() {
+        // An explicit Play/open after exhausted retries starts a fresh attempt budget.
+        if (engine.isRunning && engine.stats().writeError < 0) engine.stop()
         if (engine.isRunning) return
         clock.reset()
         engine.setEventSource(transport)
@@ -161,7 +163,7 @@ class PlaybackSession(
         }
     }
 
-    /** Called periodically by the foreground practice UI; recovery itself is #51. */
+    /** Transient errors recover in the mixer; only exhausted recovery interrupts the session. */
     fun checkOutput() {
         if (isPlaying && engine.stats().writeError < 0) interrupt(StopReason.ENGINE_ERROR)
     }

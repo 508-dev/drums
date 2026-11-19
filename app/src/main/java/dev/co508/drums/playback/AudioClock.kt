@@ -41,6 +41,7 @@ class AudioClock(
     private var anchorNanos = 0L
     private var lastRefreshNanos = 0L
     private var refreshed = false
+    private var generation = source.streamGeneration
 
     private var updates = 0L
     private var lastErrorMillis = 0.0
@@ -94,6 +95,12 @@ class AudioClock(
         )
 
     private fun refreshIfDue() {
+        val currentGeneration = source.streamGeneration
+        if (generation != currentGeneration) {
+            generation = currentGeneration
+            hasAnchor = false
+            refreshed = false
+        }
         val now = systemNanoTime()
         if (refreshed && now - lastRefreshNanos < refreshIntervalNanos) return
         refreshed = true
@@ -101,6 +108,11 @@ class AudioClock(
         // On failure keep the old anchor: timestamps can be briefly unavailable
         // mid-stream, and a new stream calls reset().
         if (!source.outputTimestamp(timestamp)) return
+        if (source.streamGeneration != generation) {
+            hasAnchor = false
+            refreshed = false
+            return
+        }
         if (hasAnchor) {
             val predicted = anchorFrame + (timestamp.nanoTime - anchorNanos) * sampleRate / NANOS_PER_SECOND
             val errorMillis = (timestamp.framePosition - predicted) * MILLIS_PER_SECOND / sampleRate

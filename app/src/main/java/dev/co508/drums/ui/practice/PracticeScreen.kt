@@ -160,15 +160,21 @@ fun PracticeScreen(
             message =
                 when (reason) {
                     PlaybackSession.StopReason.HEADPHONES_UNPLUGGED -> "Playback stopped: headphones disconnected."
-                    PlaybackSession.StopReason.ENGINE_ERROR -> "Playback stopped: audio output error."
+                    PlaybackSession.StopReason.ENGINE_ERROR ->
+                        "Playback stopped: audio recovery failed. Press Play to try again."
                     else -> "Playback stopped: a call or another player took audio focus."
                 }
         }
         onDispose { session.onInterrupted = null }
     }
+    val lastPosition = remember(lesson.preferenceKey) { doubleArrayOf(0.0) }
     val now: () -> Double = {
         val frame = session.clock.visualFrameAt(frameNanos)
-        if (playing && frame.isFinite()) session.transport.positionAt(frame) else 0.0
+        if (playing && frame.isFinite()) {
+            val position = session.transport.positionAt(frame)
+            if (position.isFinite()) lastPosition[0] = position
+        }
+        if (playing) lastPosition[0] else 0.0
     }
     PracticeContent(
         lesson = lesson,

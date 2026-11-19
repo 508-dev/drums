@@ -26,12 +26,61 @@ don't include it. It shows:
   extrapolation of the previous one (last, mean and max, in ms).
 - **UI frames:** frames drawn, frames dropped (from gaps between frame times)
   and the worst gap.
+- **Recovery:** current state, track recreations/attempts and last error/reason.
+  "Recreate output" requests the same worker-owned replacement used for errors
+  and route changes; it needs no root. It does not emulate an audio-server
+  crash. Playback stays in its existing run; a stopped run stays stopped.
 - **Controls:** tempo (30 to 300 BPM, ±1/±5), snare notes per beat (4ths to
   32nds, plus triplets and sextuplets), click and snare on/off, count-in, the
   visual offset (±150 ms), a "300 BPM 32nds" preset and a stats reset.
 
 While playing, it logs a one-line summary every 10 s under the tag
 `DrumsTiming`.
+
+## Output-recovery checks (#51)
+
+JVM fake-track tests cover negative writes during prefill and playback
+(`ERROR_DEAD_OBJECT` -6 and other errors), unavailable track creation, partial
+and zero writes, bounded failures, cancellation during retry, route-requested
+replacement, trainer/TempoMap continuity and clock-generation invalidation.
+The diagnostics state also has a Roborazzi reference. No new shipped library
+or permission is needed.
+
+On a debug build, start practice in **Drums timing**, tap **Recreate output**,
+and inspect `AudioTrackEngine`/`DrumsTiming` logcat. A normal replacement should
+finish in roughly a second or less; new timestamps anchor the new stream,
+without a count-in restart or a huge clock-jitter spike. A brief gap/discarded
+old output buffer is expected. Exhausted attempts stop playback; Play retries.
+
+The maintainer must check actual wired in/out and Bluetooth connect/disconnect
+and judge sound/visual lock by eye and ear. Unplugging/focus loss intentionally
+stops practice and must not auto-resume. Test re-opening playback on the new
+route. `killall audioserver` requires root and is **not** a usable acceptance
+test on the unrooted Sony; do not report the debug recreation as that test.
+
+### 2026-11-19 Sony smoke and recovery observations
+
+Current-main `f391f39` debug was installed first. UI automation traversed all
+45 lesson titles (Timing 5, Rolls 15, Diddles 4, Flams 11, Drags 10). A Quarter
+Notes favorite survived force-stop/relaunch. Settings/About/licenses opened,
+the bundled OFL text expanded, and a short 60 BPM run appeared in History
+(0.16 min, start/highest 60 BPM, manual tempo). No app crash was observed.
+Screenshots and the collected lesson list were retained in workspace scratch.
+
+The #51 debug build then ran the 300 BPM/32nds preset for 120.1 seconds on
+speaker, 48 kHz/144-frame bursts and a 2016-frame (42 ms) buffer. One requested
+recreation occurred during that timed run: recovery took 191 ms; final counters
+were zero underruns/late/dropped/stolen events, writeError 0 and an anchored
+clock (max reported jitter 1.99 ms). Subsequent recreations took 194–198 ms;
+two while stopped did not resume practice. An additional playing recreation
+and user Stop completed normally. Screenshots confirmed the recovery counts
+and continuing metronome rendering; sound/visual synchrony was not judged.
+
+The available adb audio command did not expose a second working media route;
+no actual wired/Bluetooth transition or audio-server kill was performed. These
+observations establish real-track replacement on speaker, **not** physical
+route recovery. Physical routes, auditory timing, TalkBack/large-font checks
+and backup/restore remain for the maintainer; the drummer lesson check is #23.
 
 ## The M1 exit test
 

@@ -7,8 +7,11 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTimestamp
 import android.media.AudioTrack
+import android.os.Handler
+import android.os.Looper
 import android.os.Process
 import android.util.Log
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * [AudioEngine] on a Kotlin mixer thread writing one continuous float PCM
@@ -52,6 +55,9 @@ class AudioTrackEngine(
     private val lock = Any()
     private var running: Running? = null
 
+    private val generation = AtomicLong()
+    override val streamGeneration get() = generation.get()
+
     @Volatile
     private var source: EventSource? = null
 
@@ -64,7 +70,7 @@ class AudioTrackEngine(
     override fun start() {
         synchronized(lock) {
             if (running != null) return
-            val r = Running(createTrack(), Mixer(config.maxVoices))
+            val r = Running()
             r.thread.start()
             running = r
         }
@@ -83,16 +89,12 @@ class AudioTrackEngine(
         this.source = source
     }
 
-    private val timestamp = AudioTimestamp()
-
     override fun outputTimestamp(out: OutputTimestamp): Boolean =
-        synchronized(lock) {
-            val track = running?.track ?: return false
-            if (!track.getTimestamp(timestamp)) return false
-            out.framePosition = timestamp.framePosition
-            out.nanoTime = timestamp.nanoTime
-            true
-        }
+        synchronized(lock) { running?.output?.timestamp(out) == true }
+
+    override fun requestOutputRestart() {
+        synchronized(lock) { running?.output?.requestRestart("requested output recreation") }
+    }
 
     override fun stats(): AudioEngineStats =
         synchronized(lock) { running?.stats() }
@@ -142,102 +144,136 @@ class AudioTrackEngine(
                 .setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY)
                 .setBufferSizeInBytes(capacityFrames * BYTES_PER_FRAME)
                 .build()
-        track.setBufferSizeInFrames(initialFrames)
-        return track
+        try {
+            track.setBufferSizeInFrames(initialFrames)
+            return track
+        } catch (error: RuntimeException) {
+            track.release()
+            throw error
+        }
     }
 
-    private inner class Running(
-        val track: AudioTrack,
-        val mixer: Mixer,
-    ) {
-        val capacityFrames = track.bufferCapacityInFrames
-        val lowLatencyGranted = track.performanceMode == AudioTrack.PERFORMANCE_MODE_LOW_LATENCY
+    private inner class Running {
+        val output =
+            RecoveringAudioOutput(
+                sampleRate,
+                framesPerBurst,
+                config.maxVoices,
+                createTrack = { AndroidTrack(createTrack()) { reason -> outputRestart(reason) } },
+                source = { source },
+                generationChanged = { generation.incrementAndGet() },
+                log = { Log.i(TAG, "$it wallTimeMillis=${System.currentTimeMillis()}") },
+            )
 
-        @Volatile
-        var keepRunning = true
-
-        @Volatile
-        var underruns = 0
-
-        @Volatile
-        var bufferSizeFrames = track.bufferSizeInFrames
-
-        @Volatile
-        var writeError = 0
-
-        val thread = Thread(::run, "drums-mixer")
-
-        private fun run() {
-            Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
-            val block = FloatArray(framesPerBurst * CHANNELS)
-            // Floats of `block` already written. A short write keeps the rest of the
-            // block for the next write, so no rendered frame is ever skipped.
-            var offset = block.size
-
-            // Fill the buffer before starting, so playback doesn't open on an underrun.
-            var prefilled = 0
-            while (keepRunning && prefilled + framesPerBurst <= bufferSizeFrames) {
-                mixer.render(block, framesPerBurst, source)
-                offset = track.write(block, 0, block.size, AudioTrack.WRITE_NON_BLOCKING)
-                if (offset < 0) return fail(offset)
-                prefilled += framesPerBurst
-                if (offset < block.size) break
-            }
-            val baseUnderruns = track.underrunCount
-            track.play()
-
-            while (keepRunning) {
-                if (offset == block.size) {
-                    mixer.render(block, framesPerBurst, source)
-                    offset = 0
-                }
-                val written = track.write(block, offset, block.size - offset, AudioTrack.WRITE_BLOCKING)
-                if (written < 0) return fail(written)
-                offset += written
-                val count = track.underrunCount - baseUnderruns
-                if (count != underruns) {
-                    underruns = count
-                    // Timing beats latency: buy headroom so it doesn't happen again.
-                    track.setBufferSizeInFrames(
-                        BufferSizing.grownFrames(bufferSizeFrames, framesPerBurst, capacityFrames),
-                    )
-                    bufferSizeFrames = track.bufferSizeInFrames
-                }
-            }
+        private fun outputRestart(reason: String) {
+            output.requestRestart(reason)
         }
 
-        private fun fail(error: Int) {
-            writeError = error
-            Log.e(TAG, "AudioTrack.write failed: $error wallTimeMillis=${System.currentTimeMillis()}")
-        }
+        val thread =
+            Thread({
+                Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
+                output.run()
+            }, "drums-mixer")
 
         fun shutDown() {
-            keepRunning = false
-            // A blocking write returns within one buffer duration while the track plays.
+            output.requestStop()
+            thread.interrupt()
             thread.join(JOIN_TIMEOUT_MILLIS)
             if (thread.isAlive) {
-                // Unblock a stuck write before releasing the track under it.
-                track.pause()
-                track.flush()
-                thread.join(JOIN_TIMEOUT_MILLIS)
+                // The worker alone owns release. Never release native state beneath a blocked write.
+                Log.e(TAG, "Mixer didn't stop within timeout; release remains worker-owned")
             }
-            if (track.playState != AudioTrack.PLAYSTATE_STOPPED) track.stop()
-            track.release()
         }
 
-        fun stats() =
-            AudioEngineStats(
-                sampleRate = sampleRate,
-                framesPerBurst = framesPerBurst,
-                bufferSizeFrames = bufferSizeFrames,
-                bufferCapacityFrames = capacityFrames,
-                lowLatencyGranted = lowLatencyGranted,
-                outputDevice = track.routedDevice?.let(::describe),
-                underruns = underruns,
-                framesRendered = mixer.framesRendered,
-                mixer = mixer.stats(),
-                writeError = writeError,
-            )
+        fun stats() = output.stats()
+    }
+
+    private inner class AndroidTrack(
+        private val native: AudioTrack,
+        onRouteChanged: (String) -> Unit,
+    ) : PcmOutputTrack {
+        private val timestamp = AudioTimestamp()
+        private val routingLock = Any()
+
+        @Volatile private var released = false
+        private var previousDeviceId: Int? = null
+        private val listener =
+            android.media.AudioRouting.OnRoutingChangedListener {
+                synchronized(routingLock) {
+                    if (!released) {
+                        try {
+                            val id = native.routedDevice?.id
+                            val previous = previousDeviceId
+                            previousDeviceId = id
+                            if (native.state != AudioTrack.STATE_INITIALIZED || (previous != null && id != previous)) {
+                                onRouteChanged("output route changed $previous→$id")
+                            }
+                        } catch (_: RuntimeException) {
+                            onRouteChanged("output route invalidated track")
+                        }
+                    }
+                }
+            }
+
+        init {
+            try {
+                native.addOnRoutingChangedListener(listener, Handler(Looper.getMainLooper()))
+            } catch (error: RuntimeException) {
+                native.release()
+                throw error
+            }
+        }
+
+        override val capacityFrames get() = native.bufferCapacityInFrames
+        override val bufferSizeFrames get() = native.bufferSizeInFrames
+        override val lowLatencyGranted get() = native.performanceMode == AudioTrack.PERFORMANCE_MODE_LOW_LATENCY
+        override val outputDevice get() = native.routedDevice?.let(::describe)
+        override val underrunCount get() = native.underrunCount
+
+        override fun resizeBuffer(frames: Int) {
+            native.setBufferSizeInFrames(frames)
+        }
+
+        override fun write(
+            samples: FloatArray,
+            offset: Int,
+            count: Int,
+            blocking: Boolean,
+        ) = native.write(
+            samples,
+            offset,
+            count,
+            if (blocking) AudioTrack.WRITE_BLOCKING else AudioTrack.WRITE_NON_BLOCKING,
+        )
+
+        override fun play() {
+            native.play()
+            synchronized(routingLock) { previousDeviceId = native.routedDevice?.id }
+        }
+
+        override fun timestamp(out: OutputTimestamp): Boolean {
+            if (!native.getTimestamp(timestamp)) return false
+            out.framePosition = timestamp.framePosition
+            out.nanoTime = timestamp.nanoTime
+            return true
+        }
+
+        override fun pauseAndFlush() {
+            native.pause()
+            native.flush()
+        }
+
+        override fun release() {
+            synchronized(routingLock) {
+                released = true
+                try {
+                    native.removeOnRoutingChangedListener(listener)
+                    native.stop()
+                } finally {
+                    native.release()
+                }
+            }
+        }
     }
 
     private fun describe(device: AudioDeviceInfo): String {

@@ -224,6 +224,35 @@ cannot drift apart. Hit detection (M5) maps mic input timestamps onto the same
 clock. A sound/visual offset setting covers devices that misreport their output
 latency, such as some Bluetooth headsets.
 
+### Output Errors Recreate The Track, Not The Practice Session
+
+The mixer worker owns AudioTrack creation, write and release. Negative writes
+(including ERROR_DEAD_OBJECT), track-operation exceptions and a sustained run
+of zero writes trigger bounded recovery; a routing callback also requests
+replacement when the output device changes or the track becomes invalid.
+The first route announcement is a baseline, not a reason to restart forever.
+Three retries wait 100/200/300 ms; one second of healthy writes resets
+the retry budget. Exhaustion exposes a terminal error and stops practice with
+an explanation; a subsequent explicit Play starts a fresh engine attempt.
+Calls/focus loss and unplugging still stop without auto-resume.
+
+A replacement mixer starts output frames at zero. Transport uses its existing
+TempoMap epoch/reanchor hook to continue at the last rendered musical position,
+preserving trainer/loop state and not replaying the count-in. The broken track's
+unplayed buffer may be discarded, so recovery is a brief gap, not gapless audio.
+The engine publishes a stream-generation change before frame-zero rendering;
+AudioClock invalidates its old anchor immediately, even while new timestamps
+are unavailable. Visuals hold their last position until the replacement clock
+anchors instead of extrapolating across stream epochs. Recovery is part of the
+same History run; it does not synthesize another Play or reacquire focus.
+
+Only the worker releases a track, after its writes finish. Shutdown cancels
+retries and pauses/flushes to unblock writes; it never releases native state
+beneath a still-running writer. Recovery counts, attempts, last error/reason
+and current state appear in debug diagnostics and timestamped logcat. A debug
+"Recreate output" control exercises the same replacement path without root;
+it is not a substitute for actual write-error and physical-route testing.
+
 ### Kotlin AudioTrack Mixer, Oboe Only If Needed
 
 A Kotlin mixer thread writes one continuous float PCM stream to an `AudioTrack`

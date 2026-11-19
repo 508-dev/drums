@@ -130,7 +130,14 @@ class Transport(
         when (val c = command.getAndSet(null)) {
             is Start -> begin(c.settings, fromFrame)
             Stop -> halt(fromFrame)
-            null -> if (state == State.PLAYING && fromFrame != expectedFrame) reanchor(fromFrame)
+            null ->
+                if (fromFrame != expectedFrame) {
+                    if (state == State.PLAYING) {
+                        reanchor(fromFrame)
+                    } else if (state == State.FINISHED) {
+                        tempoMap.begin(fromFrame.toDouble(), windowEnd, 0.0)
+                    }
+                }
         }
         expectedFrame = toFrame
         if (state != State.PLAYING) return
@@ -200,7 +207,14 @@ class Transport(
     }
 
     private fun halt(fromFrame: Long) {
-        if (state == State.PLAYING) tempoMap.changeRateAtFrame(fromFrame.toDouble(), 0.0)
+        if (state == State.PLAYING) {
+            if (fromFrame == expectedFrame) {
+                tempoMap.changeRateAtFrame(fromFrame.toDouble(), 0.0)
+            } else {
+                // Stop can arrive while a replacement stream is being built, before frame 0.
+                tempoMap.begin(fromFrame.toDouble(), windowEnd, 0.0)
+            }
+        }
         state = State.STOPPED
     }
 
