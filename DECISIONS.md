@@ -162,6 +162,15 @@ hit-detection scores attach in M5. There are no streaks, goals or unlocks.
 
 Speed of use wins over ceremony.
 
+The library uses an ID-only, saved navigation stack: pack, family, lesson.
+Family and lesson order follow first appearance in `pack.json`; Timing basics
+is the built-in pack's first family. Back returns to the previous list and
+its scroll position, including after rotation. History and Settings are
+top-bar destinations, initially placeholders until their own M3 issues land.
+Favorites are stored separately from playback preferences in the same
+DataStore, so concurrent favorite and tempo saves cannot overwrite each other.
+A lesson without saved playback preferences shows “Last tempo: —”.
+
 ### Content: The 40 Standard Rudiments, In Our Own Words
 
 The built-in content is the 40 standard rudiments (the PAS International Drum

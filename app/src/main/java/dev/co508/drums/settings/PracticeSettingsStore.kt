@@ -87,6 +87,25 @@ class PracticeSettingsStore(
         writes.trySend(Operation.Edit { it.copy(view = view.name) })
     }
 
+    /** Library edits touch only favorites, never a stale snapshot of playback preferences. */
+    fun toggleFavorite(lesson: Lesson) {
+        val key = lesson.preferenceKey
+        writes.trySend(
+            Operation.Edit { current ->
+                current.copy(
+                    favorites =
+                        if (key in
+                            current.favorites
+                        ) {
+                            current.favorites - key
+                        } else {
+                            current.favorites + key
+                        },
+                )
+            },
+        )
+    }
+
     fun saveZoom(pixelsPerBeat: Float) {
         writes.trySend(
             Operation.Edit {
