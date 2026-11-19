@@ -412,10 +412,11 @@ our choice.
 - **Grace strokes are quieter:** a gain of 0.3, against 0.55 for a normal
   stroke (see "A Lesson Plays As Written").
 
-The gap starts at **30 ms**, a first guess. The maintainer tunes it by ear on
-the Sony with the debug screen's "Grace gap" slider and its "Ornament check"
-lesson. The tuned value replaces 30 ms here and in
-`Transport.DEFAULT_GRACE_GAP_MILLIS`.
+The gap is **12 ms** (`Transport.DEFAULT_GRACE_GAP_MILLIS`). The maintainer
+chose it by ear on the Sony with the debug screen's "Grace gap" slider and
+its "Ornament check" lesson; it sounded better than the first guess of 30 ms.
+It was judged with the synthesized placeholder snare, so it should be
+checked again once the real samples arrive (#19).
 
 ### A Lesson Plays As Written
 
@@ -431,7 +432,18 @@ the transport loops:
   hand.
 - **A buzz roll is one sustained buzz,** cut to the roll's length at the
   current tempo with a 5 ms fade. Until #19 brings samples, the buzz is
-  synthesized: pulsing high-passed noise.
+  synthesized:
+  - **Strokes:** the hands alternate, each stroke coming in as the last one's
+    bounces run out.
+  - **Bounces:** each stroke is 5 to 8 short noise bounces that come faster
+    and quieter as the stick settles.
+  - **Randomness:** spacing and levels are seeded random, so the sound is the
+    same every time.
+
+  The first version pulsed steadily at 28 Hz and sounded like a sprinkler; a
+  test now checks that the buzz is far less periodic than that. The real fix
+  is #19's: a looped press-roll sample, or rolls built from single sampled
+  bounces with random timing, level and sample choice.
 - **Dynamics are gains:** accent (and marcato) 1.0, normal 0.55, grace 0.3,
   ghost 0.18. These are placeholder levels for the synthesized snare. The
   samples in M3 come at three dynamics and will set their own.
