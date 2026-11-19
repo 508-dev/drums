@@ -8,6 +8,7 @@ aren't listed.
 | Component | Version | Licence | Used for |
 | --- | --- | --- | --- |
 | Bravura font, © Steinberg Media Technologies GmbH | 1.482 | SIL Open Font License 1.1 ([`licenses/Bravura-OFL.txt`](../licenses/Bravura-OFL.txt)) | Music symbols in the practice views (`res/font/bravura.otf`, unmodified) |
+| Versilian Community Sample Library, Versilian Studios LLC | revision `c1ea7bc` | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | Modified snare recordings and buzz bounces; [file provenance](../app/src/main/assets/samples/README.md) |
 | Kotlin standard library | 2.3.20 | Apache 2.0 | Everything |
 | kotlinx.serialization (JSON) | 1.11.0 | Apache 2.0 | Reading `pack.json` |
 | AndroidX Core, Activity | see `gradle/libs.versions.toml` | Apache 2.0 | App framework |

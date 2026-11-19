@@ -3,6 +3,7 @@ package dev.co508.drums
 import android.app.Application
 import dev.co508.drums.audio.AudioTrackEngine
 import dev.co508.drums.audio.PlaceholderSounds
+import dev.co508.drums.audio.SampledSounds
 import dev.co508.drums.lesson.AssetPackSource
 import dev.co508.drums.lesson.PackLoader
 import dev.co508.drums.lesson.PackResult
@@ -29,10 +30,16 @@ class DrumsApp : Application() {
         PlaybackSession(this, engine, transport, AudioClock(engine, rate))
     }
 
-    /** The sounds lessons play with, at the output's sample rate. Placeholders until #19. */
+    /** The sounds lessons play with, loaded at the output's sample rate. */
     val kit: DrumKit by lazy {
         val rate = playback.engine.sampleRate
-        DrumKit(PlaceholderSounds.snare(rate), PlaceholderSounds.buzz(rate))
+        val ghost = SampledSounds.snare("ghost", rate, assets::open)
+        DrumKit(
+            snare = SampledSounds.snare("normal", rate, assets::open),
+            buzz = SampledSounds.buzz(ghost, rate),
+            ghost = ghost,
+            accent = SampledSounds.snare("accent", rate, assets::open),
+        )
     }
 
     /** The built-in pack, loaded (and strictly checked) on first use. Call off the main thread. */

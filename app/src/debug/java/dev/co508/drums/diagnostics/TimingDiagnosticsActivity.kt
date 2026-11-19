@@ -48,7 +48,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.co508.drums.DrumsApp
-import dev.co508.drums.audio.PlaceholderSounds
 import dev.co508.drums.lesson.AssetPackSource
 import dev.co508.drums.lesson.Expansion
 import dev.co508.drums.lesson.Lesson
@@ -85,9 +84,8 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val rate = session.engine.sampleRate
         val (lessons, packErrors) = loadLessons()
-        val kit = DrumKit(PlaceholderSounds.snare(rate), PlaceholderSounds.buzz(rate))
+        val kit = (application as DrumsApp).kit
         val controller = DiagnosticsController(session, kit, lessons)
         if (packErrors.isNotEmpty()) controller.message = packErrors.joinToString("\n")
         session.onInterrupted = {

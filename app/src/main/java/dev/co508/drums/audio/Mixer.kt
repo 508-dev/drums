@@ -27,6 +27,8 @@ class Mixer(
     }
 
     private val voiceSound = arrayOfNulls<Sound>(maxVoices)
+    private val variationSounds = arrayOfNulls<Sound>(maxVoices)
+    private val variationNext = IntArray(maxVoices)
 
     // Index of the voice's next sample to render, at the start of the current
     // block. Negative while the voice is waiting to start inside the block.
@@ -170,14 +172,29 @@ class Mixer(
         }
         if (limit <= 0) return
 
+        val selected = nextVariation(sound)
         val v = freeVoice()
-        voiceSound[v] = sound
+        voiceSound[v] = selected
         voicePosition[v] = -offset.toInt()
-        voiceLimit[v] = limit
+        voiceLimit[v] = minOf(limit, selected.frames)
         val angle = (pan.coerceIn(-1f, 1f) + 1f) * (PI / 4)
         val g = gain.coerceAtLeast(0f)
         voiceGainLeft[v] = g * cos(angle).toFloat()
         voiceGainRight[v] = g * sin(angle).toFloat()
+    }
+
+    /** Per-sound counters live on the mixer thread and never allocate while rendering. */
+    private fun nextVariation(sound: Sound): Sound {
+        if (sound.alternatives.isEmpty()) return sound
+        var slot = variationSounds.indexOfFirst { it === sound }
+        if (slot < 0) {
+            slot = variationSounds.indexOfFirst { it == null }
+            if (slot < 0) return sound
+            variationSounds[slot] = sound
+        }
+        val index = variationNext[slot]
+        variationNext[slot] = (index + 1) % (sound.alternatives.size + 1)
+        return if (index == 0) sound else sound.alternatives[index - 1]
     }
 
     /** A free voice, or the one that has played longest if all are busy. */

@@ -10,6 +10,7 @@ package dev.co508.drums.audio
 class Sound(
     val name: String,
     internal val samples: FloatArray,
+    internal val alternatives: List<Sound> = emptyList(),
 ) {
     val frames: Int get() = samples.size
 
