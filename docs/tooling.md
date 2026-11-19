@@ -13,6 +13,7 @@ Pins mirror soundboard at M0 (2026-11-19), trimmed to an empty Compose app.
 | Compose BOM | 2026.08.00 | UI and Material 3 versions |
 | Core KTX | 1.19.0 | AndroidX core utilities |
 | Activity Compose | 1.13.0 | Activity/Compose integration |
+| DataStore | 1.2.1 | Typed JSON practice settings; matches soundboard |
 | ktlint Gradle plugin | 14.2.0 | Uses bundled ktlint engine |
 | Kotlin serialization plugin | 2.3.20 | `@Serializable` for `pack.json` |
 | kotlinx.serialization JSON | 1.11.0 | `pack.json` (matches soundboard) |
@@ -25,7 +26,7 @@ Pins mirror soundboard at M0 (2026-11-19), trimmed to an empty Compose app.
 | min / target / compile SDK | 26 / 36 / 37 | Review behavior changes before targeting 37 |
 
 Dependencies and plugin pins live in `gradle/libs.versions.toml`. No navigation,
-Media3, Room, DataStore or DI libraries are added speculatively.
+Media3, Room or DI libraries are added speculatively.
 Renovate applies the existing seven-day release-age policy; lint warnings about
 new versions are not a reason to bump opportunistically.
 

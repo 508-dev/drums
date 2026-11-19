@@ -70,7 +70,7 @@ private fun DrumsScreen(app: DrumsApp) {
                         LessonList(result.pack.lessons, onOpen = { openLessonId = it.id })
                     } else {
                         BackHandler { openLessonId = null }
-                        PracticeScreen(lesson, app.playback, app.kit, onBack = { openLessonId = null })
+                        PracticeScreen(lesson, app.playback, app.kit, app.settings, onBack = { openLessonId = null })
                     }
                 }
             }

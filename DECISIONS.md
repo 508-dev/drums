@@ -109,8 +109,8 @@ Deliberate differences from MuseScore:
 A note and its sticking light up from when the playhead reaches it until the
 next note starts, at most a third of a beat.
 
-The last view used is remembered in a SharedPreferences value until DataStore
-arrives with the Settings screen (#18).
+The last view used is remembered globally in DataStore. The M2 SharedPreferences
+value is migrated once on first read (#16).
 
 ### Linear Time In Both Views
 
@@ -509,6 +509,15 @@ placeholder `Meter` is gone.
 
 The practice log uses Room, because it's history that gets queried. Settings
 and per-lesson preferences use DataStore. Lessons are files, not database rows.
+
+Practice settings use one typed JSON DataStore (1.2.1, matching `soundboard`).
+Per-lesson keys include both pack and lesson IDs, so imported packs cannot
+overwrite a built-in lesson's choices. The view toggle remains global. Start
+tempo is separate from the last tempo reached, so replaying a speed trainer
+starts at its configured start rather than its previous target. Count-in,
+loop, lead hand and trainer setup change while stopped; sound switches,
+volumes and the manual tempo control apply live. Accepted writes are queued
+in application scope so navigating away does not cancel them.
 
 ### Testing
 

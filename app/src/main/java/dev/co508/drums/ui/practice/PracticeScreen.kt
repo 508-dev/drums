@@ -15,16 +15,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -35,94 +32,180 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import dev.co508.drums.lesson.Expansion
+import dev.co508.drums.lesson.Hand
 import dev.co508.drums.lesson.Lesson
-import dev.co508.drums.lesson.PackLoader
+import dev.co508.drums.lesson.Notation
 import dev.co508.drums.playback.DrumKit
 import dev.co508.drums.playback.LessonPattern
 import dev.co508.drums.playback.PlaySettings
 import dev.co508.drums.playback.PlaybackSession
+import dev.co508.drums.playback.Transport
+import dev.co508.drums.settings.LessonPreferences
+import dev.co508.drums.settings.PracticePreferences
+import dev.co508.drums.settings.PracticeSettingsStore
+import dev.co508.drums.settings.preferenceKey
 import dev.co508.drums.ui.falling.FallingNotesLayout
 import dev.co508.drums.ui.falling.FallingNotesView
 import dev.co508.drums.ui.sheet.SheetView
+import java.io.IOException
 import kotlin.math.roundToInt
 
-/**
- * The minimal M2 practice screen: the falling-notes view with play/stop and a
- * tempo slider (±1/±5). The full set of v0.1 controls is #16.
- *
- * Every frame is positioned from the audio clock and the transport's tempo
- * map, never from a separate timer (DECISIONS.md, "One Audio Clock").
- */
+/** Positions and the displayed trainer tempo follow the heard audio, not a UI timer. */
 @Composable
 fun PracticeScreen(
     lesson: Lesson,
     session: PlaybackSession,
     kit: DrumKit,
+    store: PracticeSettingsStore,
     onBack: () -> Unit,
 ) {
-    val timeline = remember(lesson) { Expansion.expand(lesson.notation) }
-    val layout = remember(timeline) { FallingNotesLayout.from(timeline) }
-    val pattern = remember(timeline) { LessonPattern.build(timeline, kit) }
-    var beatsPerMinute by rememberSaveable(lesson.id) { mutableIntStateOf(lesson.manifest.tempo.start) }
-    var pixelsPerBeat by rememberSaveable { mutableFloatStateOf(DEFAULT_PIXELS_PER_BEAT) }
-    var showCounts by rememberSaveable { mutableStateOf(true) }
-    val context = LocalContext.current
-    val viewPreference = remember { PracticeViewPreference(context) }
-    var practiceView by remember { mutableStateOf(viewPreference.view) }
+    var initial by remember(lesson.preferenceKey) { mutableStateOf<PracticePreferences?>(null) }
+    var loadError by remember { mutableStateOf(false) }
+    var retry by remember { mutableIntStateOf(0) }
+    LaunchedEffect(lesson.preferenceKey, retry) {
+        loadError = false
+        try {
+            initial = store.snapshot()
+        } catch (_: IOException) {
+            loadError = true
+        }
+    }
+    DisposableEffect(session) { onDispose { session.close() } }
+    val loaded = initial
+    if (loaded == null) {
+        Column {
+            TextButton(onClick = onBack) { Text("Back") }
+            Text(if (loadError) "Couldn't load practice settings." else "Loading practice settings…")
+            if (loadError) Button(onClick = { retry++ }) { Text("Retry") }
+        }
+        return
+    }
+    var settings by remember(lesson.preferenceKey) { mutableStateOf(loaded.lesson(lesson)) }
+    var practiceView by remember { mutableStateOf(loaded.practiceView) }
     var playing by remember { mutableStateOf(session.isPlaying) }
     var message by remember { mutableStateOf<String?>(null) }
     var frameNanos by remember { mutableLongStateOf(0L) }
+    var heardTempo by remember { mutableIntStateOf(settings.tempo) }
+    var runSettings by remember { mutableStateOf<PlaySettings?>(null) }
+    val writeError by store.writeError.collectAsState()
+    val timeline = remember(lesson, settings.leadWithLeft) { Expansion.expand(lesson.notation, settings.leadWithLeft) }
+    val pattern = remember(timeline, kit) { LessonPattern.build(timeline, kit) }
 
-    // The session stops by itself on focus loss or unplugged headphones; follow it every frame.
-    LaunchedEffect(Unit) {
+    fun change(value: LessonPreferences) {
+        settings = value.normalized()
+        store.saveLesson(lesson, settings)
+        session.transport.clickVolume = if (settings.click) settings.clickVolume else 0f
+        session.transport.instrumentVolume = if (settings.snare) settings.snareVolume else 0f
+    }
+
+    LaunchedEffect(session, lesson.preferenceKey) {
         while (true) {
             withFrameNanos { t ->
                 frameNanos = t
-                if (playing != session.isPlaying) playing = session.isPlaying
+                val frame = session.clock.visualFrameAt(t)
+                if (session.isPlaying &&
+                    runSettings != null &&
+                    session.transport.settings === runSettings &&
+                    frame.isFinite()
+                ) {
+                    val bpm = session.transport.beatsPerMinuteAt(frame)
+                    if (bpm.isFinite() && bpm > 0) {
+                        heardTempo = bpm.roundToInt()
+                        if (settings.tempo != heardTempo) change(settings.rememberHeardTempo(bpm))
+                    }
+                    // FINISHED is ahead of the speaker by the output buffer. Wait for the heard end.
+                    if (session.transport.state == Transport.State.FINISHED &&
+                        session.transport.positionAt(frame) >= pattern.lengthQuarters
+                    ) {
+                        session.stop()
+                    }
+                }
+                playing = session.isPlaying
             }
         }
     }
-    DisposableEffect(Unit) {
-        onDispose { session.close() }
-    }
     val view = LocalView.current
-    DisposableEffect(playing) {
+    DisposableEffect(view, playing) {
+        val previous = view.keepScreenOn
         view.keepScreenOn = playing
-        onDispose { view.keepScreenOn = false }
+        onDispose { view.keepScreenOn = previous }
     }
-
-    fun play() {
-        session.transport.clickVolume = 1f
-        session.transport.instrumentVolume = 1f
-        message =
-            if (session.play(PlaySettings(pattern, beatsPerMinute.toDouble(), countIn = true, loop = true))) {
-                null
-            } else {
-                "Playback isn't available right now (a call in progress?)"
-            }
-        playing = session.isPlaying
-    }
-
-    fun stop() {
-        session.stop()
-        playing = false
-    }
-
-    fun changeTempo(bpm: Int) {
-        beatsPerMinute = bpm.coerceIn(PackLoader.MIN_BPM, PackLoader.MAX_BPM)
-        session.transport.setTempo(beatsPerMinute.toDouble())
-    }
-
     val now: () -> Double = {
-        val frame = session.clock.visualFrameAt(frameNanos) // Reading frameNanos redraws every frame.
-        val position = if (frame.isNaN()) Double.NaN else session.transport.positionAt(frame)
-        if (playing && !position.isNaN()) position else 0.0
+        val frame = session.clock.visualFrameAt(frameNanos)
+        if (playing && frame.isFinite()) session.transport.positionAt(frame) else 0.0
     }
+    PracticeContent(
+        lesson = lesson,
+        settings = settings,
+        practiceView = practiceView,
+        playing = playing,
+        heardTempo = heardTempo,
+        now = now,
+        onChange = ::change,
+        onTempo = {
+            change(settings.copy(tempo = it))
+            session.transport.setTempo(settings.tempo.toDouble())
+        },
+        onView = {
+            practiceView = it
+            store.saveView(it)
+        },
+        onPlayStop = {
+            if (playing) {
+                session.stop()
+            } else {
+                change(settings)
+                val playSettings = settings.playSettings(pattern)
+                heardTempo = playSettings.beatsPerMinute.roundToInt()
+                message =
+                    if (session.play(playSettings)) null else "Playback isn't available right now (a call in progress?)"
+                runSettings = playSettings
+            }
+            playing = session.isPlaying
+        },
+        onBack = {
+            session.stop()
+            onBack()
+        },
+        message = message ?: writeError,
+    )
+}
 
+/** Pure screen content: also used by orientation, controls and screenshot tests. */
+@Composable
+internal fun PracticeContent(
+    lesson: Lesson,
+    settings: LessonPreferences,
+    practiceView: PracticeView,
+    playing: Boolean,
+    heardTempo: Int,
+    now: () -> Double,
+    onChange: (LessonPreferences) -> Unit,
+    onTempo: (Int) -> Unit,
+    onView: (PracticeView) -> Unit,
+    onPlayStop: () -> Unit,
+    onBack: () -> Unit,
+    message: String? = null,
+) {
+    val timeline = remember(lesson, settings.leadWithLeft) { Expansion.expand(lesson.notation, settings.leadWithLeft) }
+    val layout = remember(timeline) { FallingNotesLayout.from(timeline) }
+    val notation = remember(lesson, settings.leadWithLeft) { lesson.notation.forDisplay(settings.leadWithLeft) }
+    val signature = timeline.timeSignature
+    val beatLabel =
+        if (signature.isCompound) {
+            "Dotted-quarter beats"
+        } else {
+            when (signature.beatType) {
+                2 -> "Half-note beats"
+                4 -> "Quarter-note beats"
+                8 -> "Eighth-note beats"
+                else -> "1/${signature.beatType}-note beats"
+            }
+        }
+    var tipsExpanded by rememberSaveable(lesson.preferenceKey) { mutableStateOf(false) }
     val notes: @Composable (Modifier) -> Unit = { modifier ->
         when (practiceView) {
             PracticeView.FALLING_NOTES ->
@@ -130,51 +213,35 @@ fun PracticeScreen(
                     layout,
                     now,
                     modifier,
-                    pixelsPerBeat = pixelsPerBeat.dp,
-                    showCounts = showCounts,
+                    pixelsPerBeat = settings.pixelsPerBeat.dp,
+                    showCounts = settings.showCounts,
                     lightUp = playing,
                 )
-            PracticeView.SHEET -> SheetView(lesson.notation, timeline, now, modifier, showPlayhead = playing)
+            PracticeView.SHEET -> SheetView(notation, timeline, now, modifier, showPlayhead = playing)
         }
     }
     val controls: @Composable () -> Unit = {
-        Controls(
-            playing = playing,
-            onPlay = ::play,
-            onStop = ::stop,
-            beatsPerMinute = beatsPerMinute,
-            onTempo = ::changeTempo,
-            pixelsPerBeat = pixelsPerBeat,
-            onZoom = { pixelsPerBeat = it },
-            showCounts = showCounts,
-            onShowCounts = { showCounts = it },
-            fallingNotes = practiceView == PracticeView.FALLING_NOTES,
-            message = message,
-        )
+        PracticeControls(settings, playing, heardTempo, practiceView, onChange, onTempo, onPlayStop, message, beatLabel)
+        TextButton(onClick = { tipsExpanded = !tipsExpanded }) {
+            Text(if (tipsExpanded) "Hide description and tips" else "Description and tips")
+        }
+        if (tipsExpanded) {
+            Text(lesson.manifest.description)
+            lesson.manifest.tips.forEach { Text("• $it", Modifier.padding(top = 8.dp)) }
+        }
     }
-
     Column(Modifier.fillMaxSize()) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = {
-                stop()
-                onBack()
-            }) { Text("Back") }
-            Text(lesson.manifest.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            TextButton(onClick = onBack) { Text("Back") }
+            Text(lesson.manifest.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+        }
+        Row(Modifier.padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for ((option, label) in listOf(PracticeView.FALLING_NOTES to "Falling", PracticeView.SHEET to "Sheet")) {
-                FilterChip(
-                    selected = practiceView == option,
-                    onClick = {
-                        practiceView = option
-                        viewPreference.view = option
-                    },
-                    label = { Text(label) },
-                    modifier = Modifier.padding(end = 6.dp),
-                )
+                FilterChip(selected = practiceView == option, onClick = { onView(option) }, label = { Text(label) })
             }
         }
         if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            // Landscape: the lanes stay vertical, with the controls beside them.
-            Row(Modifier.fillMaxSize()) {
+            Row(Modifier.weight(1f)) {
                 notes(Modifier.weight(1f).fillMaxHeight())
                 Column(
                     Modifier
@@ -182,54 +249,44 @@ fun PracticeScreen(
                         .fillMaxHeight()
                         .verticalScroll(rememberScrollState())
                         .padding(12.dp),
-                ) { controls() }
+                ) {
+                    controls()
+                }
             }
         } else {
             notes(Modifier.weight(1f).fillMaxWidth())
-            Box(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) { Column { controls() } }
+            // Keep notation visible even with large fonts or expanded tips; every control scrolls.
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp)) { controls() }
+            }
         }
     }
 }
 
-@Composable
-private fun Controls(
-    playing: Boolean,
-    onPlay: () -> Unit,
-    onStop: () -> Unit,
-    beatsPerMinute: Int,
-    onTempo: (Int) -> Unit,
-    pixelsPerBeat: Float,
-    onZoom: (Float) -> Unit,
-    showCounts: Boolean,
-    onShowCounts: (Boolean) -> Unit,
-    fallingNotes: Boolean,
-    message: String?,
-) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (playing) Button(onClick = onStop) { Text("Stop") } else Button(onClick = onPlay) { Text("Play") }
-        Text("$beatsPerMinute BPM", style = MaterialTheme.typography.titleMedium)
+/** The sheet must show the same swapped grace and main hands as the expanded playback. */
+internal fun Notation.forDisplay(leadWithLeft: Boolean): Notation =
+    if (!leadWithLeft) {
+        this
+    } else {
+        copy(
+            measures =
+                measures.map { measure ->
+                    measure.copy(
+                        notes =
+                            measure.notes.map { note ->
+                                note.copy(
+                                    hand = note.hand.swapped(),
+                                    graceNotes = note.graceNotes.map { it.copy(hand = it.hand.swapped()) },
+                                )
+                            },
+                    )
+                },
+        )
     }
-    message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        for (step in listOf(-5, -1, 1, 5)) {
-            OutlinedButton(onClick = { onTempo(beatsPerMinute + step) }) { Text(if (step > 0) "+$step" else "$step") }
-        }
-    }
-    Slider(
-        value = beatsPerMinute.toFloat(),
-        onValueChange = { onTempo(it.roundToInt()) },
-        valueRange = PackLoader.MIN_BPM.toFloat()..PackLoader.MAX_BPM.toFloat(),
-    )
-    // Zoom and counting belong to the falling-notes view.
-    if (!fallingNotes) return
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Zoom")
-        Slider(value = pixelsPerBeat, onValueChange = onZoom, valueRange = 48f..240f, modifier = Modifier.weight(1f))
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Counting")
-        Switch(checked = showCounts, onCheckedChange = onShowCounts)
-    }
-}
 
-private const val DEFAULT_PIXELS_PER_BEAT = 110f
+private fun Hand?.swapped(): Hand? =
+    when (this) {
+        Hand.RIGHT -> Hand.LEFT
+        Hand.LEFT -> Hand.RIGHT
+        null -> null
+    }
