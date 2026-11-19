@@ -45,7 +45,12 @@ class BuiltInLessonsTest {
     fun everyLessonIsOneRepeatedBar() {
         for (lesson in pack.lessons) {
             val measure = lesson.notation.measures.single()
-            val expectedTime = if (lesson.id == "double-paradiddle") TimeSignature(3, 4) else TimeSignature.FOUR_FOUR
+            val expectedTime =
+                when (lesson.id) {
+                    "double-paradiddle", "drag-paradiddle-1", "double-ratamacue" -> TimeSignature(3, 4)
+                    "lesson-25" -> TimeSignature(2, 4)
+                    else -> TimeSignature.FOUR_FOUR
+                }
             assertEquals(lesson.id, expectedTime, measure.timeSignature)
             assertTrue(lesson.id, measure.repeatStart)
             assertEquals(lesson.id, 2, measure.repeatTimes)
@@ -66,6 +71,80 @@ class BuiltInLessonsTest {
         val strokes = firstPass("single-stroke-roll")
         assertEquals("RL".repeat(8), hands(strokes))
         assertEquals((0L until 16).map { f(it, 4) }, strokes.map { it.position })
+    }
+
+    @Test
+    fun timingSubdivisionsAreEvenAndAlternateHands() {
+        val denominators =
+            mapOf(
+                "quarter-notes" to 1L,
+                "eighth-notes" to 2L,
+                "triplet-notes" to 3L,
+                "sixteenth-notes" to 4L,
+            )
+        for ((id, denominator) in denominators) {
+            val strokes = firstPass(id)
+            assertEquals(id, "RL".repeat(strokes.size / 2), hands(strokes))
+            assertEquals(id, strokes.indices.map { f(it.toLong(), denominator) }, strokes.map { it.position })
+        }
+        val changing = firstPass("changing-subdivisions")
+        assertEquals("RLRLRLRLRL", hands(changing))
+        assertEquals(
+            listOf(f(0), f(1), f(3, 2), f(2), f(7, 3), f(8, 3), f(3), f(13, 4), f(7, 2), f(15, 4)),
+            changing.map { it.position },
+        )
+    }
+
+    @Test
+    fun dragRudimentsHaveExpectedHandsGracesAndAccents() {
+        val expected =
+            mapOf(
+                "single-drag-tap" to Triple("RLLRRLLR", listOf(1, 3, 5, 7), listOf(1, 3, 5, 7)),
+                "double-drag-tap" to
+                    Triple("RRLLLRRRLLLR", listOf(0, 1, 3, 4, 6, 7, 9, 10), listOf(2, 5, 8, 11)),
+                "lesson-25" to Triple("RLRRLR", listOf(0, 3), listOf(2, 5)),
+                "single-dragadiddle" to Triple("RLRRLRLLRLRRLRLL", listOf(0, 4, 8, 12), listOf(0, 4, 8, 12)),
+                "drag-paradiddle-1" to Triple("RRLRRLLRLL", listOf(1, 6), listOf(0, 5)),
+                "drag-paradiddle-2" to Triple("RRRLRRLLLRLL", listOf(1, 2, 7, 8), listOf(0, 6)),
+                "single-ratamacue" to Triple("RLRLLRLRRLRLLRLR", listOf(0, 4, 8, 12), listOf(3, 7, 11, 15)),
+                "double-ratamacue" to Triple("RRLRLLLRLR", listOf(0, 1, 5, 6), listOf(4, 9)),
+                "triple-ratamacue" to Triple("RRRLRLLLLRLR", listOf(0, 1, 2, 6, 7, 8), listOf(5, 11)),
+            )
+        for ((id, expectation) in expected) {
+            val notes = lesson(id).notation.notes
+            assertEquals(id, expectation.first, hands(firstPass(id).filter { it.graceLead == 0 }))
+            assertEquals(
+                id,
+                expectation.second,
+                notes.mapIndexedNotNull {
+                    i,
+                    n,
+                    ->
+                    i.takeIf { n.graceNotes.isNotEmpty() }
+                },
+            )
+            assertEquals(
+                id,
+                expectation.third,
+                notes.mapIndexedNotNull {
+                    i,
+                    n,
+                    ->
+                    i.takeIf { n.accent != Accent.NONE }
+                },
+            )
+            assertTrue(id, notes.all { n -> n.graceNotes.isEmpty() || n.graceNotes.size == 2 })
+            assertTrue(id, notes.all { n -> n.graceNotes.all { it.hand != n.hand } })
+        }
+        val singleRatamacue = firstPass("single-ratamacue").filter { it.graceLead == 0 }
+        assertEquals(
+            (0L until 4).flatMap { beat ->
+                listOf(f(beat), f(beat * 6 + 1, 6), f(beat * 6 + 2, 6), f(beat * 2 + 1, 2))
+            },
+            singleRatamacue.map { it.position },
+        )
+        val lesson25 = firstPass("lesson-25").filter { it.graceLead == 0 }
+        assertEquals(listOf(f(0), f(1, 4), f(1, 2), f(1), f(5, 4), f(3, 2)), lesson25.map { it.position })
     }
 
     @Test

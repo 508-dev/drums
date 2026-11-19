@@ -65,3 +65,17 @@ mirrors the sticking. Flam tap and inverted flam tap use continuous eighth-note
 triplets, with their two-stroke groups moving across the beat. Flamacue has
 an accent on the second main stroke and a longer closing flam. The drummer
 review in #23 should check phrasing, accents, and tempo suggestions.
+
+## Timing and drag phrases
+
+The Timing basics family starts with one bar each of quarter notes, eighth
+notes, eighth-note triplets and sixteenth notes. Changing Subdivisions moves
+through those values one beat at a time without interrupting the alternating
+hands, including across the repeat.
+
+The existing Drag lesson is unchanged. New drags use two unslashed grace
+notes. Lesson 25 is in 2/4, with the third stroke accented. The ratamacues
+finish each phrase with an accent after a sixteenth-note triplet; the double and triple add
+one and two dragged notes before the triplet. These settings, the drag
+paradiddle stickings and the suggested tempos remain subject to drummer review
+in #23.
