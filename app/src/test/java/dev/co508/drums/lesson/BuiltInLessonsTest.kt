@@ -82,6 +82,44 @@ class BuiltInLessonsTest {
     }
 
     @Test
+    fun allLessonsExpand() {
+        for (lesson in pack.lessons) {
+            val timeline = Expansion.expand(lesson.notation)
+            assertTrue(lesson.id, timeline.strokes.isNotEmpty())
+            assertTrue(lesson.id, timeline.strokes.all { it.hand != null })
+        }
+    }
+
+    @Test
+    fun newRollsHaveExpectedFirstPhrase() {
+        val phrases =
+            mapOf(
+                "single-stroke-four" to "RLRL",
+                "single-stroke-seven" to "RLRLRLR",
+                "triple-stroke-roll" to "RRRLLLRRRLLL",
+                "five-stroke-roll" to "RRLLR",
+                "six-stroke-roll" to "RRLLRL",
+                "seven-stroke-roll" to "RRLLRRL",
+                "nine-stroke-roll" to "RRLLRRLLR",
+                "ten-stroke-roll" to "RRLLRRLLRL",
+                "eleven-stroke-roll" to "RRLLRRLLRRL",
+                "thirteen-stroke-roll" to "RRLLRRLLRRLLR",
+                "fifteen-stroke-roll" to "RRLLRRLLRRLLRRL",
+                "seventeen-stroke-roll" to "RRLLRRLLRRLLRRLLR",
+            )
+        for ((id, expected) in phrases) {
+            val strokes = firstPass(id)
+            assertTrue(id, hands(strokes).startsWith(expected))
+            val firstPhrase = strokes.take(expected.length)
+            val denominator = if (id.startsWith("single-stroke-") || id == "triple-stroke-roll") 4L else 8L
+            if (id != "triple-stroke-roll") {
+                assertEquals(id, expected.indices.map { f(it.toLong(), denominator) }, firstPhrase.map { it.position })
+                assertEquals(id, List(expected.length - 1) { NORMAL } + ACCENT, firstPhrase.map { it.dynamic })
+            }
+        }
+    }
+
+    @Test
     fun singleParadiddle() {
         val strokes = firstPass("single-paradiddle")
         assertEquals("RLRRLRLL".repeat(2), hands(strokes))
