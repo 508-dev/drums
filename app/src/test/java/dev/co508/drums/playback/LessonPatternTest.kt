@@ -2,6 +2,7 @@ package dev.co508.drums.playback
 
 import dev.co508.drums.audio.Sound
 import dev.co508.drums.lesson.Expansion
+import dev.co508.drums.lesson.StrokeDynamic
 import dev.co508.drums.musicxml.ImportResult
 import dev.co508.drums.musicxml.fixture
 import dev.co508.drums.musicxml.testImporter
@@ -43,5 +44,41 @@ class LessonPatternTest {
         // 6/8 bars: clicks on each dotted quarter, accented on each bar.
         assertEquals(listOf(0.0, 1.5, 3.0, 4.5), p.clicks.take(4).map { it.position })
         assertEquals(listOf(true, false, true, false), p.clicks.take(4).map { it.accent })
+    }
+
+    @Test
+    fun dynamicsChooseTheRecordedLayerWithoutChangingGains() {
+        val notation =
+            (
+                testImporter().read(
+                    fixture("sticking-and-ornaments.musicxml"),
+                    strict = true,
+                ) as ImportResult.Success
+            ).notation
+        val timeline = Expansion.expand(notation)
+        val layered = DrumKit(kit.snare, kit.buzz, Sound("ghost", floatArrayOf(1f)), Sound("accent", floatArrayOf(1f)))
+        val events = LessonPattern.build(timeline, layered).events
+        for (stroke in timeline.strokes) {
+            val expected =
+                if (stroke.buzzLength != null) {
+                    "buzz"
+                } else {
+                    when (stroke.dynamic) {
+                        StrokeDynamic.ACCENT -> "accent"
+                        StrokeDynamic.NORMAL -> "snare"
+                        StrokeDynamic.GHOST, StrokeDynamic.GRACE -> "ghost"
+                    }
+                }
+            val matches =
+                events.filter {
+                    it.position == stroke.position.toDouble() && it.leadLevel == stroke.graceLead
+                }
+            org.junit.Assert.assertTrue(
+                matches.any {
+                    it.sound.name == expected &&
+                        it.gain == LessonPattern.gainOf(stroke.dynamic)
+                },
+            )
+        }
     }
 }

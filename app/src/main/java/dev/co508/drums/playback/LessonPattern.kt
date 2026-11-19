@@ -9,6 +9,8 @@ import dev.co508.drums.lesson.StrokeTimeline
 class DrumKit(
     val snare: Sound,
     val buzz: Sound,
+    val ghost: Sound = snare,
+    val accent: Sound = snare,
 )
 
 /** Builds the transport's [Pattern] from a lesson's [StrokeTimeline]. */
@@ -41,7 +43,16 @@ object LessonPattern {
                 val buzz = stroke.buzzLength
                 PatternEvent(
                     position = stroke.position.toDouble(),
-                    sound = if (buzz != null) kit.buzz else kit.snare,
+                    sound =
+                        if (buzz != null) {
+                            kit.buzz
+                        } else {
+                            when (stroke.dynamic) {
+                                StrokeDynamic.ACCENT -> kit.accent
+                                StrokeDynamic.NORMAL -> kit.snare
+                                StrokeDynamic.GRACE, StrokeDynamic.GHOST -> kit.ghost
+                            }
+                        },
                     gain = gainOf(stroke.dynamic),
                     pan = panOf(stroke.hand),
                     leadLevel = stroke.graceLead.coerceAtMost(Pattern.MAX_LEAD_LEVEL),
