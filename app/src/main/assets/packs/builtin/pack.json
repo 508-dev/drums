@@ -1,0 +1,23 @@
+{
+  "format": 1,
+  "id": "builtin",
+  "title": "Built-in lessons",
+  "version": 1,
+  "author": "Drums contributors",
+  "license": "CC-BY-SA-4.0",
+  "lessons": [
+    {
+      "id": "quarter-notes",
+      "file": "quarter-notes.musicxml",
+      "title": "Quarter notes",
+      "family": "timing",
+      "level": 1,
+      "tempo": { "min": 40, "max": 200, "start": 80 },
+      "description": "Alternating single strokes on every beat, right hand first.",
+      "tips": [
+        "Let the stick rebound; don't press it into the head.",
+        "Keep both sticks at the same height so every stroke sounds the same."
+      ]
+    }
+  ]
+}

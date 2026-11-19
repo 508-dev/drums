@@ -14,11 +14,14 @@ Pins mirror soundboard at M0 (2026-11-19), trimmed to an empty Compose app.
 | Core KTX | 1.19.0 | AndroidX core utilities |
 | Activity Compose | 1.13.0 | Activity/Compose integration |
 | ktlint Gradle plugin | 14.2.0 | Uses bundled ktlint engine |
-| JUnit | 4.13.2 | JVM smoke test only |
+| Kotlin serialization plugin | 2.3.20 | `@Serializable` for `pack.json` |
+| kotlinx.serialization JSON | 1.11.0 | `pack.json` (matches soundboard) |
+| JUnit | 4.13.2 | JVM unit tests |
+| kxml2 | 2.3.0 | Test only: the real XmlPullParser in JVM tests (DECISIONS.md, "XML: Pull Parser, No DTDs, No Entities") |
 | min / target / compile SDK | 26 / 36 / 37 | Review behavior changes before targeting 37 |
 
 Dependencies and plugin pins live in `gradle/libs.versions.toml`. No navigation,
-Media3, Room, DataStore, DI or serialization libraries are added speculatively.
+Media3, Room, DataStore or DI libraries are added speculatively.
 Renovate applies the existing seven-day release-age policy; lint warnings about
 new versions are not a reason to bump opportunistically.
 

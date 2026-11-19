@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ktlint)
 }
 
@@ -134,5 +135,8 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.material3)
+    implementation(libs.kotlinx.serialization.json)
     testImplementation(libs.junit)
+    // Android ships KXml as its XmlPullParser; tests get the real thing instead of the stub.
+    testImplementation(libs.kxml2)
 }
