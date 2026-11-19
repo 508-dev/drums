@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Only durable user data; database domain includes SQLite journal/WAL sidecars. -->
+    <include domain="database" path="." />
+    <include domain="file" path="datastore/" />
+</full-backup-content>

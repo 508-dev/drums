@@ -161,6 +161,26 @@ class TempoMap(
         }
     }
 
+    /** Highest retained rate already heard in this epoch; ignores rendered-ahead segments. */
+    fun highestRateThrough(frame: Double): Double {
+        while (true) {
+            val n = count
+            if (n == 0L) return Double.NaN
+            val newest = n - 1
+            val latestEpoch = epoch[(newest % capacity).toInt()]
+            val oldest = oldestReadable(n)
+            var i = newest
+            var highest = 0.0
+            while (i >= oldest) {
+                val s = (i % capacity).toInt()
+                if (epoch[s] != latestEpoch) break
+                if (startFrame[s] <= frame) highest = maxOf(highest, rate[s])
+                i--
+            }
+            if (!lapped(maxOf(i, oldest))) return highest
+        }
+    }
+
     /** The index of the newest segment in the latest epoch starting at or before [frame], else its oldest. */
     private fun findByFrame(
         n: Long,

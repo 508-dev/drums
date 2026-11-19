@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.roborazzi)
     alias(libs.plugins.ktlint)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.room)
 }
 
 // Local properties take precedence; CI supplies environment variables instead.
@@ -103,6 +105,8 @@ android {
         compose = true
     }
     sourceSets.getByName("main").assets.srcDir(rootProject.file("licenses"))
+    // Robolectric uses the app AssetManager; schema fixtures ship only in debug, not beta/release.
+    sourceSets.getByName("debug").assets.srcDir(file("schemas"))
     testOptions {
         // Robolectric screenshot tests need the app's resources (fonts, strings).
         unitTests.isIncludeAndroidResources = true
@@ -140,9 +144,16 @@ roborazzi {
     outputDir.set(file("src/testDebug/screenshots"))
 }
 
+room {
+    schemaDirectory("$projectDir/schemas")
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore)
+    implementation(libs.androidx.room.runtime)
+    ksp(libs.androidx.room.compiler)
+    testImplementation(libs.androidx.room.testing)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)

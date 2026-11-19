@@ -35,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import dev.co508.drums.history.PracticeIdentity
 import dev.co508.drums.lesson.Expansion
 import dev.co508.drums.lesson.Hand
 import dev.co508.drums.lesson.Lesson
@@ -112,6 +113,7 @@ fun PracticeScreen(
         while (true) {
             withFrameNanos { t ->
                 frameNanos = t
+                session.updatePracticeLog()
                 if (t >= nextOutputCheck) {
                     session.checkOutput()
                     nextOutputCheck = t + 1_000_000_000L
@@ -192,7 +194,15 @@ fun PracticeScreen(
                 val playSettings = settings.playSettings(pattern)
                 heardTempo = playSettings.beatsPerMinute.roundToInt()
                 message =
-                    if (session.play(playSettings)) null else "Playback isn't available right now (a call in progress?)"
+                    if (session.play(
+                            playSettings,
+                            PracticeIdentity(lesson.packId, lesson.id),
+                        )
+                    ) {
+                        null
+                    } else {
+                        "Playback isn't available right now (a call in progress?)"
+                    }
                 runSettings = playSettings
             }
             playing = session.isPlaying
