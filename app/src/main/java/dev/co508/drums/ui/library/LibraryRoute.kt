@@ -4,7 +4,7 @@ import androidx.compose.runtime.saveable.listSaver
 import dev.co508.drums.lesson.Family
 import dev.co508.drums.lesson.Pack
 
-enum class LibraryDestination { HISTORY, SETTINGS }
+enum class LibraryDestination { HISTORY, SETTINGS, ABOUT, LICENSES }
 
 /** Small explicit back stack; stores only stable IDs, not parsed lesson objects. */
 data class LibraryRoute(
@@ -19,6 +19,8 @@ data class LibraryRoute(
 
     fun back(): LibraryRoute =
         when {
+            destination == LibraryDestination.LICENSES -> copy(destination = LibraryDestination.ABOUT)
+            destination == LibraryDestination.ABOUT -> copy(destination = LibraryDestination.SETTINGS)
             destination != null -> copy(destination = null)
             lessonId != null -> copy(lessonId = null)
             family != null -> copy(family = null)

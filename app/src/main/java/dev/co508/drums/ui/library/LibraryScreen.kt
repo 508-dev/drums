@@ -32,14 +32,19 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.co508.drums.lesson.Lesson
 import dev.co508.drums.lesson.Pack
+import dev.co508.drums.settings.AppDefaults
 import dev.co508.drums.settings.PracticePreferences
 import dev.co508.drums.settings.PracticeSettingsStore
 import dev.co508.drums.settings.preferenceKey
+import dev.co508.drums.ui.settings.AboutContent
+import dev.co508.drums.ui.settings.LicensesContent
+import dev.co508.drums.ui.settings.SettingsContent
 import java.io.IOException
 
 @Composable
@@ -52,6 +57,12 @@ fun LibraryScreen(
     var readError by remember { mutableStateOf<String?>(null) }
     var retry by remember { mutableIntStateOf(0) }
     val writeError by store.writeError.collectAsState()
+    val context = LocalContext.current
+    val version =
+        remember(context) {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName
+                ?: "unknown"
+        }
     LaunchedEffect(store, retry) {
         readError = null
         try {
@@ -65,6 +76,8 @@ fun LibraryScreen(
         preferences = preferences ?: PracticePreferences(),
         preferencesReady = preferences != null && readError == null,
         onFavorite = store::toggleFavorite,
+        onDefaults = store::saveDefaults,
+        appVersion = version,
         message = readError ?: writeError ?: if (preferences == null) "Loading saved preferences…" else null,
         onRetry = if (readError != null) ({ retry++ }) else null,
         practice = practice,
@@ -81,6 +94,8 @@ internal fun LibraryNavigation(
     preferencesReady: Boolean = true,
     message: String? = null,
     onRetry: (() -> Unit)? = null,
+    onDefaults: (AppDefaults) -> Unit = {},
+    appVersion: String = "unknown",
     practice: @Composable (Lesson, () -> Unit) -> Unit,
 ) {
     var savedRoute by rememberSaveable(stateSaver = LibraryRoute.Saver) { mutableStateOf(LibraryRoute()) }
@@ -104,6 +119,8 @@ internal fun LibraryNavigation(
                     when (route.destination) {
                         LibraryDestination.HISTORY -> "History"
                         LibraryDestination.SETTINGS -> "Settings"
+                        LibraryDestination.ABOUT -> "About"
+                        LibraryDestination.LICENSES -> "Licenses and credits"
                         null -> route.family?.title ?: pack?.manifest?.title ?: "Library"
                     }
                 Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -129,13 +146,24 @@ internal fun LibraryNavigation(
             windowInsets = WindowInsets(0, 0, 0, 0),
         )
         if (route.destination != null) {
-            Text(
-                when (route.destination) {
-                    LibraryDestination.HISTORY -> "Your practice log will appear here when session logging is added."
-                    else -> "Sound defaults, count-in and sound/visual offset settings are coming next."
-                },
-                Modifier.padding(24.dp),
-            )
+            message?.let { Text(it, Modifier.padding(horizontal = 16.dp)) }
+            onRetry?.let { TextButton(onClick = it) { Text("Retry") } }
+            when (route.destination) {
+                LibraryDestination.SETTINGS ->
+                    SettingsContent(preferences.defaults, preferencesReady, onDefaults) {
+                        savedRoute = route.copy(destination = LibraryDestination.ABOUT)
+                    }
+                LibraryDestination.ABOUT ->
+                    AboutContent(appVersion) {
+                        savedRoute = route.copy(destination = LibraryDestination.LICENSES)
+                    }
+                LibraryDestination.LICENSES -> LicensesContent()
+                else ->
+                    Text(
+                        "Your practice log will appear here when session logging is added.",
+                        Modifier.padding(24.dp),
+                    )
+            }
             return@Column
         }
         message?.let {

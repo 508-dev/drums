@@ -87,6 +87,10 @@ class PracticeSettingsStore(
         writes.trySend(Operation.Edit { it.copy(view = view.name) })
     }
 
+    fun saveDefaults(defaults: AppDefaults) {
+        writes.trySend(Operation.Edit { it.copy(defaults = defaults.normalized()) })
+    }
+
     /** Library edits touch only favorites, never a stale snapshot of playback preferences. */
     fun toggleFavorite(lesson: Lesson) {
         val key = lesson.preferenceKey

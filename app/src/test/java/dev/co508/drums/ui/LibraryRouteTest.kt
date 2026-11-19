@@ -52,6 +52,14 @@ class LibraryRouteTest {
         val practice = LibraryRoute("pack", Family.TIMING, "lesson0")
         assertEquals(practice, practice.validated(listOf(pack)))
         assertEquals(practice, practice.copy(destination = LibraryDestination.SETTINGS).back())
+        assertEquals(
+            LibraryDestination.ABOUT,
+            practice.copy(destination = LibraryDestination.LICENSES).back().destination,
+        )
+        assertEquals(
+            LibraryDestination.SETTINGS,
+            practice.copy(destination = LibraryDestination.ABOUT).back().destination,
+        )
         assertEquals(LibraryRoute("pack", Family.TIMING), practice.back())
         assertEquals(LibraryRoute("pack"), practice.back().back())
         assertEquals(LibraryRoute(), practice.back().back().back())

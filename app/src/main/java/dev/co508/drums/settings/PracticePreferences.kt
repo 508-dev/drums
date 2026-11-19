@@ -15,6 +15,7 @@ data class PracticePreferences(
     val lessons: Map<String, LessonPreferences> = emptyMap(),
     val pixelsPerBeat: Float = DEFAULT_ZOOM,
     val favorites: Set<String> = emptySet(),
+    val defaults: AppDefaults = AppDefaults(),
 ) {
     val zoomPixelsPerBeat: Float
         get() = if (pixelsPerBeat.isFinite()) pixelsPerBeat.coerceIn(48f, 480f) else DEFAULT_ZOOM
@@ -29,6 +30,11 @@ data class PracticePreferences(
                 tempo = lesson.manifest.tempo.start,
                 trainerStart = lesson.manifest.tempo.start,
                 trainerTarget = lesson.manifest.tempo.max,
+                click = defaults.click,
+                clickVolume = defaults.clickVolume,
+                snare = defaults.snare,
+                snareVolume = defaults.snareVolume,
+                countIn = defaults.countIn,
             )
         ).normalized()
 

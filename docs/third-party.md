@@ -21,3 +21,11 @@ The built-in lessons are our own work, licensed CC BY-SA 4.0
 
 Bravura is used unmodified. The OFL reserves its name, so a subset or other
 modified copy would have to be renamed.
+
+The Settings → About → Licenses and credits screen groups these components by
+project and includes our GPL-3.0-only app and CC BY-SA lesson content. Full legal
+texts in `licenses/` ship as APK assets and can be read offline. Apache 2.0 is
+from apache.org/licenses/LICENSE-2.0.txt; CC0 and CC BY-SA are from their
+creativecommons.org legalcode.txt URLs, and GPLv3 from gnu.org/licenses/gpl-3.0.txt.
+Update both the hand-maintained project list in `ui/settings/LicensesScreen.kt`
+and this file when shipped dependencies/assets change. No build-time downloads.
