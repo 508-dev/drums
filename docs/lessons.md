@@ -54,3 +54,14 @@ end with two single strokes. The single-stroke and triple-stroke exercises
 also separate their groups with rests. These are practice settings, not the
 only possible rhythmic interpretations; the drummer review in #23 should
 check their rhythmic choices, stickings, and accents.
+
+## Diddle and flam practice phrases
+
+The double paradiddle uses even sixteenths in 3/4, so a right- and left-led
+group fit exactly into one bar. The single and flammed paradiddle-diddles use
+sixteenth-note sextuplets in 4/4 (engraved as pairs of three-note tuplets).
+They keep the same lead throughout; the practice screen's left-lead control
+mirrors the sticking. Flam tap and inverted flam tap use continuous eighth-note
+triplets, with their two-stroke groups moving across the beat. Flamacue has
+an accent on the second main stroke and a longer closing flam. The drummer
+review in #23 should check phrasing, accents, and tempo suggestions.

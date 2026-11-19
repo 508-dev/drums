@@ -2,7 +2,7 @@
   "format": 1,
   "id": "builtin",
   "title": "Rudiments",
-  "version": 3,
+  "version": 4,
   "author": "Drums contributors",
   "license": "CC-BY-SA-4.0",
   "lessons": [
@@ -295,6 +295,60 @@
       ]
     },
     {
+      "id": "double-paradiddle",
+      "file": "double-paradiddle.musicxml",
+      "title": "Double Paradiddle",
+      "family": "diddles",
+      "level": 2,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Four alternating singles lead into a double. Each six-note group changes the lead hand.",
+      "tips": [
+        "Count six even notes in each group.",
+        "Let the final double prepare the next lead hand.",
+        "Keep the accents clear without tightening your grip."
+      ]
+    },
+    {
+      "id": "triple-paradiddle",
+      "file": "triple-paradiddle.musicxml",
+      "title": "Triple Paradiddle",
+      "family": "diddles",
+      "level": 2,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Six alternating singles lead into a double, then the pattern starts with the other hand.",
+      "tips": [
+        "Count eight even strokes per group.",
+        "Keep the last two strokes of each group even.",
+        "Bring out the first note without speeding up."
+      ]
+    },
+    {
+      "id": "single-paradiddle-diddle",
+      "file": "single-paradiddle-diddle.musicxml",
+      "title": "Single Paradiddle-Diddle",
+      "family": "diddles",
+      "level": 2,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Two alternating singles followed by two doubles, written here as sixteenth-note sextuplets.",
+      "tips": [
+        "Say the six hands slowly before playing.",
+        "Listen for two balanced strokes in each double.",
+        "Use lead-with-left to practice the mirrored sticking."
+      ]
+    },
+    {
       "id": "flam",
       "file": "flam.musicxml",
       "title": "Flam",
@@ -328,6 +382,168 @@
         "Count it in threes: flam, tap, tap.",
         "Keep the two taps low and even, so the accented flam stands out.",
         "The last tap of each group is the next flam's grace note hand; let it stay low."
+      ]
+    },
+    {
+      "id": "flam-tap",
+      "file": "flam-tap.musicxml",
+      "title": "Flam Tap",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Alternating same-hand doubles with a flam on the first stroke, played as continuous triplets.",
+      "tips": [
+        "Keep the grace note low.",
+        "Match the spacing from flam to tap on each hand.",
+        "Count the triplets while the two-stroke groups move across the beat."
+      ]
+    },
+    {
+      "id": "flamacue",
+      "file": "flamacue.musicxml",
+      "title": "Flamacue",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Five alternating main strokes framed by flams, with the accent on the second stroke.",
+      "tips": [
+        "Play the second note louder than its neighbors.",
+        "Keep the framing flams soft and close.",
+        "Hear the closing flam before starting the other hand."
+      ]
+    },
+    {
+      "id": "flam-paradiddle",
+      "file": "flam-paradiddle.musicxml",
+      "title": "Flam Paradiddle",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A paradiddle with a flam on the first stroke of each group.",
+      "tips": [
+        "Play the underlying paradiddle evenly.",
+        "Keep the grace stroke close to the accented main note.",
+        "Let the final double set up the opposite lead."
+      ]
+    },
+    {
+      "id": "single-flammed-mill",
+      "file": "single-flammed-mill.musicxml",
+      "title": "Single Flammed Mill",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "An inverted paradiddle beginning with a flam and a same-hand tap.",
+      "tips": [
+        "Practice the four main strokes without the grace first.",
+        "Keep the tap after the flam low.",
+        "Listen for a smooth change to the other hand."
+      ]
+    },
+    {
+      "id": "flam-paradiddle-diddle",
+      "file": "flam-paradiddle-diddle.musicxml",
+      "title": "Flam Paradiddle-Diddle",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A paradiddle-diddle with a flam at the start, written as sixteenth-note sextuplets.",
+      "tips": [
+        "Keep the six main strokes evenly spaced.",
+        "Separate the soft grace stroke from the following doubles.",
+        "Switch the lead hand using the practice control."
+      ]
+    },
+    {
+      "id": "pataflafla",
+      "file": "pataflafla.musicxml",
+      "title": "Pataflafla",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Four alternating strokes with flams on the first and fourth.",
+      "tips": [
+        "Count the two quiet middle taps.",
+        "Make both flams clear without widening them.",
+        "Notice the adjacent flams across each group boundary."
+      ]
+    },
+    {
+      "id": "swiss-army-triplet",
+      "file": "swiss-army-triplet.musicxml",
+      "title": "Swiss Army Triplet",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A flam, a same-hand tap and an opposite-hand tap make one triplet.",
+      "tips": [
+        "Count each three-note group evenly.",
+        "Keep the tap after the flam quiet.",
+        "Use lead-with-left to mirror the exercise."
+      ]
+    },
+    {
+      "id": "inverted-flam-tap",
+      "file": "inverted-flam-tap.musicxml",
+      "title": "Inverted Flam Tap",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Continuous triplets with a flam followed by the opposite hand; the next flam completes that hand's double.",
+      "tips": [
+        "Listen for the double that crosses the group boundary.",
+        "Play the first flam gently until the sticking feels natural.",
+        "Count the triplets as the two-stroke groups move across the beat."
+      ]
+    },
+    {
+      "id": "flam-drag",
+      "file": "flam-drag.musicxml",
+      "title": "Flam Drag",
+      "family": "flams",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Triplets alternate a flam, a dragged note and a tap; each new group changes hands.",
+      "tips": [
+        "Keep the two drag grace notes low and close.",
+        "Keep the three main notes evenly spaced.",
+        "Practice each hand slowly before raising the tempo."
       ]
     },
     {

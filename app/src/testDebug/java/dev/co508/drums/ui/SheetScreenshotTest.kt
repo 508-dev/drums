@@ -74,9 +74,13 @@ class SheetScreenshotTest {
 
     @Test fun singleParadiddle() = lesson("single-paradiddle")
 
+    @Test fun doubleParadiddle() = lesson("double-paradiddle")
+
     @Test fun flam() = lesson("flam")
 
     @Test fun flamAccent() = lesson("flam-accent")
+
+    @Test fun swissArmyTriplet() = lesson("swiss-army-triplet")
 
     @Test fun drag() = lesson("drag")
 
