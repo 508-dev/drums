@@ -17,6 +17,10 @@ Pins mirror soundboard at M0 (2026-11-19), trimmed to an empty Compose app.
 | Kotlin serialization plugin | 2.3.20 | `@Serializable` for `pack.json` |
 | kotlinx.serialization JSON | 1.11.0 | `pack.json` (matches soundboard) |
 | JUnit | 4.13.2 | JVM unit tests |
+| Robolectric | 4.18.1 | Test only: runs the screenshot tests on the JVM |
+| Roborazzi (+ Gradle plugin) | 1.79.0 | Test only: screenshot tests ([development](development.md#screenshot-tests)) |
+| AndroidX Test ext JUnit | 1.3.0 | Test only: the AndroidJUnit4 runner |
+| Compose UI test | BOM | Test only (`ui-test-manifest` in debug builds) |
 | kxml2 | 2.3.0 | Test only: the real XmlPullParser in JVM tests (DECISIONS.md, "XML: Pull Parser, No DTDs, No Entities") |
 | min / target / compile SDK | 26 / 36 / 37 | Review behavior changes before targeting 37 |
 

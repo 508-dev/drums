@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.roborazzi)
     alias(libs.plugins.ktlint)
 }
 
@@ -101,6 +102,10 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        // Robolectric screenshot tests need the app's resources (fonts, strings).
+        unitTests.isIncludeAndroidResources = true
+    }
     // Exclude the opaque Google-signed dependency blob from F-Droid artifacts.
     dependenciesInfo {
         includeInApk = false
@@ -129,6 +134,11 @@ ktlint {
     android.set(true)
 }
 
+roborazzi {
+    // Reference screenshots are committed; CI verifies against them.
+    outputDir.set(file("src/testDebug/screenshots"))
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
@@ -139,4 +149,13 @@ dependencies {
     testImplementation(libs.junit)
     // Android ships KXml as its XmlPullParser; tests get the real thing instead of the stub.
     testImplementation(libs.kxml2)
+    // Roborazzi screenshot tests (src/testDebug): test-only, nothing ships.
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.junit.rule)
+    testImplementation(libs.androidx.test.ext.junit)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

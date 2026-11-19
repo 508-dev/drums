@@ -48,8 +48,17 @@ jobs:
       - name: ktlint
         run: ./gradlew ktlintCheck
 
-      - name: Unit tests
-        run: ./gradlew testDebugUnitTest
+      - name: Unit tests and screenshot checks
+        # Roborazzi compares screenshots with the references in app/src/testDebug/screenshots.
+        run: ./gradlew testDebugUnitTest -Proborazzi.test.verify=true
+
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: roborazzi-diffs
+          path: app/build/outputs/roborazzi/
+          if-no-files-found: ignore
 
       - name: Android lint
         run: ./gradlew lintDebug

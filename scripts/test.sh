@@ -4,4 +4,5 @@
 # connected device or running emulator.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-./gradlew testDebugUnitTest
+# Screenshots are compared with the committed references (Roborazzi).
+./gradlew testDebugUnitTest -Proborazzi.test.verify=true
