@@ -121,8 +121,11 @@ instruments differently. The staff position (E4) is display only.
 - A diddle or buzz roll gets the single letter of the hand that plays it.
   `R` on a diddled note means both strokes are right-handed.
 - Don't put sticking on rests.
+- The second note of a tie isn't a new stroke and needs no sticking; it keeps
+  the hand of the note it's tied from.
 
-**Importer:**
+**Importer** (`MusicXmlImporter`; built-in lessons are imported in strict mode,
+where any style problem is an error):
 
 - Attach each `<words>` direction to the note group (grace notes plus main
   note) at the same time position, whatever order directions and notes

@@ -332,6 +332,50 @@ Writing grace-note hands as lowercase letters in the main note's word ("lR",
 The details, and the importer's rules for teachers' files that stack
 stickings anyway, are in `docs/musicxml-style.md`.
 
+### XML: Pull Parser, No DTDs, No Entities
+
+MusicXML is read with `XmlPullParser`: Android's built-in KXml in the app,
+and the real kxml2 as a test-only dependency in JVM unit tests (android.jar's
+copy is only a stub there). `javax.xml` DOM exists on both too, but it is
+Xerces on the JVM and KXml on Android, so tests would exercise a different
+parser from the one that ships. With kxml2, the security tests run against
+the same parser family as the app.
+
+Lesson files are untrusted from M6 on, and every MusicXML file names a remote
+DTD in its DOCTYPE. The reader is safe by construction, not just because
+the app has no INTERNET permission:
+
+- DOCTYPE processing stays off, so the DTD is never fetched or read.
+- A DOCTYPE with an internal subset (`[ … ]`, where entities are declared)
+  is rejected.
+- Any entity reference other than XML's five predefined ones and character
+  references is rejected.
+
+That rules out external-entity (XXE) and entity-expansion attacks whatever
+the parser supports. Tests feed it both.
+
+### The Lesson Model Is What's Written
+
+The importer produces a `Notation`: measures of notes as written. Each note
+has its hand, grace notes (with their hands), accent or ghost, tremolo or
+buzz, tuplet and ties; measures have their repeats, dynamics and tempo marks.
+Expanding that into timed strokes (grace timing, diddles, buzz, repeats,
+"lead with left") is a separate step (#11). Then the timeline and its
+consumers can change without touching the importer. Every note carries its
+hand, so the strokes M5 scores against come out of that expansion with hands
+attached.
+
+- **Positions are exact.** Positions and durations are exact fractions of a
+  quarter note, so tuplets never accumulate rounding. They become doubles
+  only on the way to the transport.
+- **Hands may be missing.** A hand is null when an imported file has no
+  sticking; such a note goes in the neutral lane (M6). Built-in lessons are
+  imported in strict mode, where a missing hand, an off-style sticking word
+  or a non-snare part is an error naming the measure and beat.
+- **Parts are chosen by id.** The importer reads one part, selected by id.
+  For now a score with more than one part is reported as unsupported. M6's
+  part picker only has to list the parts and pass an id.
+
 ### Grace Notes Sound Just Before The Beat
 
 Flams and drags put the main note on the beat and their grace notes shortly
