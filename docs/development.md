@@ -70,3 +70,13 @@ guide's facts still hold. CI doesn't have MuseScore and only runs the checks.
 Lessons are written in MuseScore 4 (`lessons/builtin/*.mscz`) and exported
 to the app's assets with `./scripts/export-lessons.sh`. See
 [`lessons.md`](lessons.md).
+
+## Screenshot tests
+
+The falling-notes view (and later the sheet view) has Roborazzi screenshot
+tests in `app/src/testDebug`, rendered by Robolectric. Their reference images
+are committed in `app/src/testDebug/screenshots`. `scripts/test.sh`,
+`scripts/check-all.sh` and CI compare against them, and a mismatch fails
+with diff images in `app/build/outputs/roborazzi/`. After an intended
+rendering change, re-record with `./gradlew recordRoborazziDebug` and review
+the new images before committing them.

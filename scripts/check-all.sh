@@ -3,4 +3,5 @@
 # No emulator required.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
-./gradlew check assembleDebug
+# Screenshots are compared with the committed references (Roborazzi).
+./gradlew check assembleDebug -Proborazzi.test.verify=true

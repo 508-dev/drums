@@ -52,10 +52,22 @@ variant is in the backlog.
 
 Two lanes, L on the left and R on the right, each colored per hand. Symbols come
 from standard notation (Bravura glyphs): noteheads, accent `>`, ghost notes in
-parentheses, rimshot notehead. A flam's grace note sits in the other lane just
-above its main note; a diddle is two notes in one lane; a buzz is a notehead
-with a "z" and a tail as long as the buzz. Thin lines mark beats, thick lines
-mark bars, and optional counting labels (1 e & a) sit in the margin.
+parentheses, rimshot notehead.
+
+- **Grace notes:** a flam's grace note is a small notehead in the other lane,
+  just *below* its main note, a fixed gap per grace note whatever the zoom.
+  Time runs up the screen, so below is earlier: the grace note crosses the
+  hit line, and lights up, just before its main note, as it sounds. (The
+  first draft of this decision said "just above", which would make a grace
+  note arrive after the note it leads into.)
+- **Accents** sit beside the notehead rather than above it. Above is later
+  in time, where the next note in the lane may already be.
+- **Diddles and buzzes:** a diddle is two notes in one lane; a buzz is a
+  notehead with a "z" and a tail as long as the buzz.
+- **Grid:** thin lines mark beats, thick lines mark bars, and optional
+  counting labels (1 e & a) sit in the margin.
+- **Lighting:** notes light up as they cross the hit line, judged by where
+  they are drawn, and fade once past it.
 
 Rudiments are about sticking, and lanes make sticking visible without reading
 letters. Notes with no sticking (possible in imported files, M6) fall in a
@@ -464,6 +476,11 @@ and per-lesson preferences use DataStore. Lessons are files, not database rows.
 - JVM unit tests for timing math, MusicXML import and layout math.
 - Roborazzi screenshot tests for both views, so every PR shows rendering changes
   as image diffs. Roborazzi is a test-only dependency; nothing ships.
+  - The tests run under Robolectric's native graphics, in `src/testDebug`.
+  - The reference images are committed in `app/src/testDebug/screenshots`.
+  - CI and `scripts/check-all.sh` verify against them and upload the diffs on
+    failure.
+  - `./gradlew recordRoborazziDebug` re-records them after an intended change.
 - A debug-only timing diagnostics screen showing audio underruns, audio-clock
   jitter and dropped frames.
 
