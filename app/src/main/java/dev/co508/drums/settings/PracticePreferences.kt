@@ -14,6 +14,7 @@ data class PracticePreferences(
     val view: String = PracticeView.FALLING_NOTES.name,
     val lessons: Map<String, LessonPreferences> = emptyMap(),
     val pixelsPerBeat: Float = DEFAULT_ZOOM,
+    val favorites: Set<String> = emptySet(),
 ) {
     val zoomPixelsPerBeat: Float
         get() = if (pixelsPerBeat.isFinite()) pixelsPerBeat.coerceIn(48f, 480f) else DEFAULT_ZOOM
@@ -33,6 +34,8 @@ data class PracticePreferences(
 
     val practiceView: PracticeView
         get() = PracticeView.entries.firstOrNull { it.name == view } ?: PracticeView.FALLING_NOTES
+
+    fun isFavorite(lesson: Lesson): Boolean = lesson.preferenceKey in favorites
 }
 
 // Length-prefixed pack ID avoids collisions even if future imported IDs contain separators.

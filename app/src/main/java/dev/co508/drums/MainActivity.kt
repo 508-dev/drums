@@ -2,7 +2,6 @@ package dev.co508.drums
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -17,14 +16,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import dev.co508.drums.lesson.PackResult
-import dev.co508.drums.ui.LessonList
+import dev.co508.drums.ui.library.LibraryScreen
 import dev.co508.drums.ui.practice.PracticeScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,7 +51,6 @@ class MainActivity : ComponentActivity() {
 private fun DrumsScreen(app: DrumsApp) {
     var pack by remember { mutableStateOf<PackResult?>(null) }
     LaunchedEffect(Unit) { pack = withContext(Dispatchers.Default) { app.builtInPack } }
-    var openLessonId by rememberSaveable { mutableStateOf<String?>(null) }
 
     Scaffold { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
@@ -65,12 +62,8 @@ private fun DrumsScreen(app: DrumsApp) {
                         result.errors.forEach { Text(it) }
                     }
                 is PackResult.Success -> {
-                    val lesson = result.pack.lessons.firstOrNull { it.id == openLessonId }
-                    if (lesson == null) {
-                        LessonList(result.pack.lessons, onOpen = { openLessonId = it.id })
-                    } else {
-                        BackHandler { openLessonId = null }
-                        PracticeScreen(lesson, app.playback, app.kit, app.settings, onBack = { openLessonId = null })
+                    LibraryScreen(listOf(result.pack), app.settings) { lesson, onBack ->
+                        PracticeScreen(lesson, app.playback, app.kit, app.settings, onBack = onBack)
                     }
                 }
             }
