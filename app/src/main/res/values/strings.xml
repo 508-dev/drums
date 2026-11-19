@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Drums</string>
+    <string name="app_name">Ratamatap</string>
     <string name="loading">Loading lessons…</string>
     <string name="pack_failed">The built-in lessons couldn\'t be loaded.</string>
 </resources>

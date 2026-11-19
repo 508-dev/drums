@@ -5,11 +5,11 @@
 # `Builds:` section — fdroidserver reads the version straight out of each APK it
 # finds in `repo/`. The name, summary, description, changelogs, and screenshots
 # all come from `fastlane/metadata/android/`, which
-# `scripts/fdroid-publish.sh` copies into `metadata/dev.co508.drums/`.
+# `scripts/fdroid-publish.sh` copies into `metadata/dev.co508.ratamatap/`.
 # Keep store copy there, not here, so Play and both F-Droid paths stay in sync.
 #
 # The f-droid.org submission is a different file with different requirements:
-# fdroid/fdroiddata/dev.co508.drums.yml. See docs/deployment.md.
+# fdroid/fdroiddata/dev.co508.ratamatap.yml. See docs/deployment.md.
 
 Categories:
   - Multimedia
@@ -18,11 +18,11 @@ AuthorName: 508.dev
 AuthorEmail: caleb@508.dev
 AuthorWebSite: https://508.dev
 WebSite: https://508.dev
-SourceCode: https://github.com/508-dev/drums
-IssueTracker: https://github.com/508-dev/drums/issues
-Changelog: https://github.com/508-dev/drums/releases
+SourceCode: https://github.com/508-dev/ratamatap
+IssueTracker: https://github.com/508-dev/ratamatap/issues
+Changelog: https://github.com/508-dev/ratamatap/releases
 
 RepoType: git
-Repo: https://github.com/508-dev/drums.git
+Repo: https://github.com/508-dev/ratamatap.git
 
 UpdateCheckMode: Tags ^v[0-9]+\.[0-9]+\.[0-9]+$

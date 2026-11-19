@@ -12,7 +12,7 @@ MusicXML is written: [`musicxml-style.md`](musicxml-style.md).
   "id": "builtin",
   "title": "Built-in lessons",
   "version": 1,
-  "author": "Drums contributors",
+  "author": "Ratamatap contributors",
   "license": "CC-BY-SA-4.0",
   "lessons": [
     {

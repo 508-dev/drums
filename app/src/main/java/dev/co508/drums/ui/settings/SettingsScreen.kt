@@ -110,11 +110,11 @@ internal fun AboutContent(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Drums", style = MaterialTheme.typography.headlineMedium)
+        Text("Ratamatap", style = MaterialTheme.typography.headlineMedium)
         Text("Version $version")
         Text("An offline snare-rudiment practice app. No analytics, ads or network permission.")
         Text("App code: GPL-3.0-only. Built-in lessons: CC BY-SA 4.0.")
-        Text("Source: https://github.com/508-dev/drums")
+        Text("Source: https://github.com/508-dev/ratamatap")
         TextButton(onClick = onLicenses) { Text("Licenses and credits") }
     }
 }

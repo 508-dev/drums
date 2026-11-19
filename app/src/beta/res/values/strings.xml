@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The beta source set overrides the base label for beta builds only. -->
 <resources>
-    <string name="app_name">Drums Beta</string>
+    <string name="app_name">Ratamatap Beta</string>
 </resources>

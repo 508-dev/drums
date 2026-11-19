@@ -1,12 +1,11 @@
-# Drums
+# Ratamatap
 
-An offline Android app for practicing snare rudiments. Planned: a lesson library,
+Ratamatap is an offline Android app for practicing snare rudiments: a lesson library,
 falling-note and sheet-notation views synchronized to drum playback, tempo and
 speed-training controls, and a practice log. Hit detection comes after v0.1.
 
-**Status: M0 skeleton, not yet a usable practice app.** The app currently shows
-a placeholder screen. No lessons, audio engine, recording or network access
-are implemented. The name and application ID are provisional until M4.
+**Status: pre-release.** The practice app is under active development; the
+first public release is planned for M4. Hit detection and networking come later.
 
 ## Roadmap
 
@@ -30,7 +29,7 @@ Set `ANDROID_HOME` or create a gitignored `local.properties` with
 ./scripts/check-all.sh
 ./scripts/sync-version.sh --check
 ./gradlew installDebug
-adb shell am start -n dev.co508.drums.debug/dev.co508.drums.MainActivity
+adb shell am start -n dev.co508.ratamatap.debug/dev.co508.drums.MainActivity
 ```
 
 Android 8.0 (API 26) or newer is required. See [development](docs/development.md),
@@ -38,7 +37,7 @@ Android 8.0 (API 26) or newer is required. See [development](docs/development.md
 
 ## License
 
-App code is **GPL-3.0-only**; see [LICENSE](LICENSE). Future built-in lessons
-will be CC BY-SA 4.0; audio samples must be CC0 or CC BY with per-file credits.
-No lessons or samples ship in this skeleton. Dependencies must be free software;
+App code is **GPL-3.0-only**; see [LICENSE](LICENSE). Built-in lessons
+are CC BY-SA 4.0; audio samples must be CC0 or CC BY with per-file credits.
+Dependencies must be free software;
 there are no Google Play Services, Firebase or proprietary SDKs.

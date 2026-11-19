@@ -1,4 +1,4 @@
-# Drums Decisions
+# Ratamatap Decisions
 
 Why this app is built the way it is. Each entry records a call that was
 genuinely open and the reasoning that closed it — not a description of the
@@ -692,13 +692,15 @@ decided together with paid packs (M7): Play requires its own billing for digital
 goods, which can't ship in an F-Droid build, so Play would mean a second build
 flavor.
 
-### The Application ID Is Provisional Until v0.1.0
+### Ratamatap Name And Application ID
 
-Development uses `dev.co508.drums` and the display name "Drums". The real name
-is chosen at the start of M4, and the ID may change until the first release.
-Signing keys aren't bound to an ID; the first installable release and store
-listings are what make it permanent. The Kotlin namespace can stay
-`dev.co508.drums` even if `applicationId` changes.
+The app is named Ratamatap, with application ID `dev.co508.ratamatap`. The
+Kotlin namespace remains `dev.co508.drums`; source packages need not match the
+application ID. The repository was renamed on 2026-11-19.
+
+A collision scan of about 15 candidates found existing same-name drum or music
+apps for Stickwork, Hitline, Ratatap and others. No conflict was found for
+Ratamatap (ratamacue + tap). This scan was not legal clearance.
 
 ## Release Machinery
 

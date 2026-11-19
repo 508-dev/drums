@@ -1,4 +1,4 @@
-Drums is an offline Android app for practicing snare rudiments.
+Ratamatap is an offline Android app for practicing snare rudiments.
 
 This early development build shows a placeholder screen only. Lessons,
 animated notation, synchronized drum playback, tempo controls and a practice

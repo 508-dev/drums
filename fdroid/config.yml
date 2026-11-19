@@ -7,12 +7,12 @@
 # indirection for exactly this — nothing secret is stored in this file.
 #
 # This is NOT the f-droid.org submission. That is a separate metadata file,
-# `fdroid/fdroiddata/dev.co508.drums.yml`; see docs/deployment.md.
+# `fdroid/fdroiddata/dev.co508.ratamatap.yml`; see docs/deployment.md.
 
-repo_url: https://508-dev.github.io/drums/fdroid/repo
-repo_name: Drums
+repo_url: https://508-dev.github.io/ratamatap/fdroid/repo
+repo_name: Ratamatap
 repo_description: >-
-  Release builds of Drums, signed with the same key as the APKs
+  Release builds of Ratamatap, signed with the same key as the APKs
   attached to its GitHub Releases — so you can move between the two without
   uninstalling. Built and published from CI on every tagged release.
 repo_icon: icon.png

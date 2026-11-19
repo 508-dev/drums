@@ -13,7 +13,7 @@ How lessons are written and exported: [`docs/lessons.md`](../docs/lessons.md).
 The lessons (the scores, their exports and renders, and the text in
 `pack.json`) are licensed under the Creative Commons Attribution-ShareAlike
 4.0 International licence (CC BY-SA 4.0),
-<https://creativecommons.org/licenses/by-sa/4.0/>. © Drums contributors.
+<https://creativecommons.org/licenses/by-sa/4.0/>. © Ratamatap contributors.
 
 The patterns are traditional snare rudiments. The notation, layout and words
 are our own (DECISIONS.md, "Content: The 40 Standard Rudiments, In Our Own

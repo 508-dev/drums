@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "drums"
+rootProject.name = "ratamatap"
 include(":app")

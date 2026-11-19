@@ -69,13 +69,13 @@ import kotlin.math.roundToInt
  * clock, and the numbers behind it (underruns, buffer, fast track, clock
  * jitter, dropped UI frames). See docs/timing.md for the exit test.
  *
- * Launch from the "Drums timing" launcher entry of a debug build, or run the
+ * Launch from the "Ratamatap timing" launcher entry of a debug build, or run the
  * exit test directly:
  *
- *     adb shell am start -n dev.co508.drums.debug/dev.co508.drums.diagnostics.TimingDiagnosticsActivity \
+ *     adb shell am start -n dev.co508.ratamatap.debug/dev.co508.drums.diagnostics.TimingDiagnosticsActivity \
  *         --ez exitTest true --ei durationSeconds 600
  *
- * While playing, a summary is logged every 10 s under the tag `DrumsTiming`.
+ * While playing, a summary is logged every 10 s under the tag `RatamatapTiming`.
  */
 class TimingDiagnosticsActivity : ComponentActivity() {
     private val session: PlaybackSession get() = (application as DrumsApp).playback
@@ -137,7 +137,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
     }
 }
 
-private const val TAG = "DrumsTiming"
+private const val TAG = "RatamatapTiming"
 private const val LOG_INTERVAL_NANOS = 10_000_000_000L
 private const val FLASH_MILLIS = 60.0
 

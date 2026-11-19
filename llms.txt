@@ -1,4 +1,4 @@
-# Drums
+# Ratamatap
 
 Offline Android snare-rudiment practice app; currently an M0 Compose skeleton.
 

@@ -1,6 +1,6 @@
 # Contributing
 
-Drums is at the Android skeleton stage. Read [DECISIONS.md](DECISIONS.md) and
+Ratamatap is at the Android skeleton stage. Read [DECISIONS.md](DECISIONS.md) and
 the [roadmap](docs/roadmap.md) before proposing features; work follows ordered
 milestone issues. Setup and device commands are in [development](docs/development.md).
 
