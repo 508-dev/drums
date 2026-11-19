@@ -205,6 +205,23 @@ Frame numbers stay exact across an underrun: the output stream's frame position
 counts frames played, so frame N of what we wrote is still frame N on the
 audio clock, only later in wall time.
 
+### Soft Clipping On The Mix
+
+The mixer's output passes through a soft clipper, not a hard clamp at full
+scale. Below 0.9 the signal is untouched. Above it, the level bends smoothly
+towards 1 (a tanh curve whose slope matches at the knee), so peaks from
+overlapping voices are rounded off instead of squared off into harsh
+distortion.
+
+M1's offline render of the 300 BPM 32nd-note stress test found this in
+practice: up to 12 overlapping placeholder snares peaked at 1.13x full scale.
+That was only 0.01% of samples, but sampled accents (M3) will push harder.
+
+There is no master attenuation. A drummer practicing on an acoustic snare
+needs a loud click, and the clipper costs nothing until the mix is near full
+scale. A look-ahead limiter would be cleaner on sustained overload, but it is
+more machinery than a drum mix needs. Revisit if real samples clip audibly.
+
 ### Musical Time Runs On A Tempo Map
 
 The transport measures musical position in quarter notes from the pattern's

@@ -138,8 +138,9 @@ class MixerTest {
     @Test
     fun panUsesConstantPower() {
         fun gains(pan: Float): Pair<Float, Float> {
-            val stream = renderStream(Mixer(), ListSource(listOf(Hit(0, impulse(), pan = pan))), 1, 1)
-            return left(stream, 0) to right(stream, 0)
+            // Half scale, below the soft-clip knee, then scaled back up.
+            val stream = renderStream(Mixer(), ListSource(listOf(Hit(0, impulse(), gain = 0.5f, pan = pan))), 1, 1)
+            return 2 * left(stream, 0) to 2 * right(stream, 0)
         }
         val (ll, lr) = gains(-1f)
         assertEquals(1f, ll, 1e-6f)
@@ -159,22 +160,41 @@ class MixerTest {
 
     @Test
     fun panOutsideTheRangeIsClamped() {
-        val stream = renderStream(Mixer(), ListSource(listOf(Hit(0, impulse(), pan = 5f))), 1, 1)
+        val stream = renderStream(Mixer(), ListSource(listOf(Hit(0, impulse(), gain = 0.5f, pan = 5f))), 1, 1)
         assertEquals(0f, left(stream, 0), 1e-6f)
-        assertEquals(1f, right(stream, 0), 1e-6f)
+        assertEquals(0.5f, right(stream, 0), 1e-6f)
     }
 
     @Test
-    fun outputIsClampedToFullScale() {
+    fun loudMixesAreSoftClippedWithinFullScale() {
         val loud = Sound("loud", floatArrayOf(0.8f, -0.8f))
         val hits = listOf(Hit(0, loud, pan = -1f), Hit(0, loud, pan = -1f))
         val stream = renderStream(Mixer(), ListSource(hits), 2, 2)
-        assertEquals(1f, left(stream, 0), 0f)
-        assertEquals(-1f, left(stream, 1), 0f)
+        // 1.6 comes out just under full scale, and symmetric.
+        assertTrue(left(stream, 0) in 0.99f..1f)
+        assertEquals(-left(stream, 0), left(stream, 1), 0f)
     }
 
     @Test
-    fun masterGainAppliesBeforeClamping() {
+    fun softClipIsTransparentBelowTheKneeAndBoundedAbove() {
+        for (x in listOf(0f, 0.1f, -0.5f, 0.9f, -0.9f)) assertEquals(x, Mixer.softClip(x), 0f)
+        var previous = Mixer.softClip(Mixer.SOFT_CLIP_KNEE)
+        var x = Mixer.SOFT_CLIP_KNEE
+        while (x < 20f) {
+            x += 0.01f
+            val y = Mixer.softClip(x)
+            assertTrue("rising at $x", y >= previous)
+            assertTrue("bounded at $x", y <= 1f)
+            assertEquals("odd at $x", -y, Mixer.softClip(-x), 0f)
+            previous = y
+        }
+        // Slope matches at the knee: no kink.
+        val above = Mixer.softClip(Mixer.SOFT_CLIP_KNEE + 1e-3f) - Mixer.SOFT_CLIP_KNEE
+        assertEquals(1e-3f, above, 1e-5f)
+    }
+
+    @Test
+    fun masterGainAppliesBeforeClipping() {
         val stream = renderStream(Mixer(masterGain = 0.5f), ListSource(listOf(Hit(0, impulse(), pan = -1f))), 1, 1)
         assertEquals(0.5f, left(stream, 0), 1e-6f)
     }
