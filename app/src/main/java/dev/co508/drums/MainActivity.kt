@@ -62,7 +62,7 @@ private fun DrumsScreen(app: DrumsApp) {
                         result.errors.forEach { Text(it) }
                     }
                 is PackResult.Success -> {
-                    LibraryScreen(listOf(result.pack), app.settings) { lesson, onBack ->
+                    LibraryScreen(listOf(result.pack), app.settings, app.history) { lesson, onBack ->
                         PracticeScreen(lesson, app.playback, app.kit, app.settings, onBack = onBack)
                     }
                 }

@@ -36,12 +36,16 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.co508.drums.history.HistoryData
+import dev.co508.drums.history.PracticeHistory
 import dev.co508.drums.lesson.Lesson
 import dev.co508.drums.lesson.Pack
 import dev.co508.drums.settings.AppDefaults
 import dev.co508.drums.settings.PracticePreferences
 import dev.co508.drums.settings.PracticeSettingsStore
 import dev.co508.drums.settings.preferenceKey
+import dev.co508.drums.ui.history.HistoryContent
+import dev.co508.drums.ui.history.HistoryScreen
 import dev.co508.drums.ui.settings.AboutContent
 import dev.co508.drums.ui.settings.LicensesContent
 import dev.co508.drums.ui.settings.SettingsContent
@@ -51,6 +55,7 @@ import java.io.IOException
 fun LibraryScreen(
     packs: List<Pack>,
     store: PracticeSettingsStore,
+    history: PracticeHistory,
     practice: @Composable (Lesson, () -> Unit) -> Unit,
 ) {
     var preferences by remember { mutableStateOf<PracticePreferences?>(null) }
@@ -78,6 +83,7 @@ fun LibraryScreen(
         onFavorite = store::toggleFavorite,
         onDefaults = store::saveDefaults,
         appVersion = version,
+        history = { HistoryScreen(history, packs) },
         message = readError ?: writeError ?: if (preferences == null) "Loading saved preferences…" else null,
         onRetry = if (readError != null) ({ retry++ }) else null,
         practice = practice,
@@ -96,6 +102,7 @@ internal fun LibraryNavigation(
     onRetry: (() -> Unit)? = null,
     onDefaults: (AppDefaults) -> Unit = {},
     appVersion: String = "unknown",
+    history: @Composable () -> Unit = { HistoryContent(HistoryData(), packs) },
     practice: @Composable (Lesson, () -> Unit) -> Unit,
 ) {
     var savedRoute by rememberSaveable(stateSaver = LibraryRoute.Saver) { mutableStateOf(LibraryRoute()) }
@@ -158,11 +165,7 @@ internal fun LibraryNavigation(
                         savedRoute = route.copy(destination = LibraryDestination.LICENSES)
                     }
                 LibraryDestination.LICENSES -> LicensesContent()
-                else ->
-                    Text(
-                        "Your practice log will appear here when session logging is added.",
-                        Modifier.padding(24.dp),
-                    )
+                LibraryDestination.HISTORY -> holder.SaveableStateProvider("history") { history() }
             }
             return@Column
         }

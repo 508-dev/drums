@@ -71,8 +71,8 @@ internal val licenseProjects =
             "https://github.com/Kotlin/kotlinx.coroutines",
         ),
         LicenseProject(
-            "AndroidX, Compose and DataStore",
-            "The Android Open Source Project and contributors. Core 1.19.0, Activity 1.13.0, DataStore 1.2.1; Compose UI/Material 3 BOM 2026.08.00.",
+            "AndroidX, Compose, DataStore and Room",
+            "The Android Open Source Project and contributors. Core 1.19.0, Activity 1.13.0, DataStore 1.2.1, Room 2.8.5, SQLite 2.6.2; Compose UI/Material 3 BOM 2026.08.00.",
             "Apache License 2.0",
             "Apache-2.0.txt",
             "https://android.googlesource.com/platform/frameworks/support/",

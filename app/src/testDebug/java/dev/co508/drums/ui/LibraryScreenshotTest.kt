@@ -88,7 +88,7 @@ class LibraryScreenshotTest {
         restoration.emulateSavedInstanceStateRestore()
         compose.onNodeWithText("Quarter Notes").assertIsDisplayed()
         compose.onNodeWithContentDescription("History").performClick()
-        compose.onNodeWithText("Your practice log will appear here when session logging is added.").assertIsDisplayed()
+        compose.onNodeWithText("No practice sessions yet. Play a lesson to start your log.").assertIsDisplayed()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithContentDescription("Settings").performClick()
         compose

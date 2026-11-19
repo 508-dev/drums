@@ -14,6 +14,8 @@ Pins mirror soundboard at M0 (2026-11-19), trimmed to an empty Compose app.
 | Core KTX | 1.19.0 | AndroidX core utilities |
 | Activity Compose | 1.13.0 | Activity/Compose integration |
 | DataStore | 1.2.1 | Typed JSON practice settings; matches soundboard |
+| Room | 2.8.5 | Practice log runtime, schema Gradle plugin, KSP compiler and test-only migration helper |
+| KSP | 2.3.14 | Build-only Room code generation, compatible with AGP built-in Kotlin |
 | ktlint Gradle plugin | 14.2.0 | Uses bundled ktlint engine |
 | Kotlin serialization plugin | 2.3.20 | `@Serializable` for `pack.json` |
 | kotlinx.serialization JSON | 1.11.0 | `pack.json` (matches soundboard) |
@@ -26,7 +28,11 @@ Pins mirror soundboard at M0 (2026-11-19), trimmed to an empty Compose app.
 | min / target / compile SDK | 26 / 36 / 37 | Review behavior changes before targeting 37 |
 
 Dependencies and plugin pins live in `gradle/libs.versions.toml`. No navigation,
-Media3, Room or DI libraries are added speculatively.
+Media3 or DI libraries are added speculatively. Room uses only `room-runtime`;
+coroutine/Flow APIs are included there, so the empty `room-ktx` artifact is not
+needed. The compiler, KSP, schema plugin and migration helper do not ship.
+Room 2.8.5 and KSP 2.3.14 were checked against the AndroidX Room release page
+and google/ksp's latest stable release on 2026-11-19 for #17.
 Renovate applies the existing seven-day release-age policy; lint warnings about
 new versions are not a reason to bump opportunistically.
 
@@ -50,4 +56,18 @@ can run individually without an emulator.
 
 All shipped dependencies, transitively, must be free software: AndroidX or
 Kotlin-class libraries. No Google Play Services, Firebase or closed-source SDKs.
-No Play Services OSS-license plugin; the future licenses screen is hand-maintained.
+No Play Services OSS-license plugin; the licenses screen is hand-maintained.
+
+## Practice database schemas
+
+Room exports `app/schemas/dev.co508.drums.history.PracticeDatabase/1.json` during
+KSP compilation. Commit every schema version, never rewrite old versions.
+`PracticeMigrationTest` runs Room's `MigrationTestHelper` under Robolectric from
+the exported schema assets (debug-only, absent from beta/release) and verifies
+baseline data survives reopening. There
+is only version 1 today: no cross-version migration exists yet. For a schema
+change, increment the version, register a non-destructive migration in
+`PracticeDatabase.open`, and extend that test to create each old schema, insert
+representative data, run the real upgrade and verify it. Do not enable
+destructive migration fallback. The existing `scripts/check-all.sh` runs these
+tests with no emulator/device.

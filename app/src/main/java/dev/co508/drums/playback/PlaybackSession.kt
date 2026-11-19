@@ -12,6 +12,8 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.content.ContextCompat
 import dev.co508.drums.audio.AudioEngine
+import dev.co508.drums.history.PracticeIdentity
+import dev.co508.drums.history.PracticeRunLog
 
 /**
  * Ties the engine, transport and clock to the system: the output stream's
@@ -30,6 +32,7 @@ class PlaybackSession(
     val engine: AudioEngine,
     val transport: Transport,
     val clock: AudioClock,
+    private val runLog: PracticeRunLog? = null,
 ) {
     enum class StopReason {
         USER,
@@ -50,6 +53,8 @@ class PlaybackSession(
     /** Whether this session holds audio focus and is playing (or has finished but not been stopped). */
     var isPlaying = false
         private set
+    private var loggedSettings: PlaySettings? = null
+    private var previousStartGeneration = 0L
 
     private val audioManager = context.getSystemService(AudioManager::class.java)
 
@@ -101,7 +106,10 @@ class PlaybackSession(
      * Takes audio focus and starts [settings] from the count-in. Returns false,
      * without playing, if focus is refused (for example during a call).
      */
-    fun play(settings: PlaySettings): Boolean {
+    fun play(
+        settings: PlaySettings,
+        identity: PracticeIdentity? = null,
+    ): Boolean {
         if (audioManager.requestAudioFocus(focusRequest) != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) return false
         if (!isPlaying) {
             ContextCompat.registerReceiver(
@@ -113,6 +121,11 @@ class PlaybackSession(
             isPlaying = true
         }
         open()
+        if (isPlaying) updatePracticeLog()
+        runLog?.finish()
+        if (identity != null) runLog?.start(identity, settings.beatsPerMinute, settings.trainer != null)
+        loggedSettings = settings
+        previousStartGeneration = transport.startGeneration
         transport.start(settings)
         return true
     }
@@ -124,6 +137,9 @@ class PlaybackSession(
     fun stop(reason: StopReason = StopReason.USER) {
         Log.i(TAG, "stop reason=$reason playing=$isPlaying wallTimeMillis=${System.currentTimeMillis()}")
         if (!isPlaying) return
+        updatePracticeLog()
+        runLog?.finish()
+        loggedSettings = null
         isPlaying = false
         transport.stop()
         context.unregisterReceiver(noisyReceiver)
@@ -148,6 +164,19 @@ class PlaybackSession(
     /** Called periodically by the foreground practice UI; recovery itself is #51. */
     fun checkOutput() {
         if (isPlaying && engine.stats().writeError < 0) interrupt(StopReason.ENGINE_ERROR)
+    }
+
+    /** Uses the raw heard clock, never the user-adjusted visual offset or rendered-ahead tempo. */
+    fun updatePracticeLog() {
+        if (runLog == null ||
+            !isPlaying ||
+            transport.startGeneration == previousStartGeneration ||
+            transport.settings !== loggedSettings
+        ) {
+            return
+        }
+        val frame = clock.frameAt(System.nanoTime())
+        if (frame.isFinite()) runLog.observeTempo(transport.highestBeatsPerMinuteThrough(frame))
     }
 
     private fun interrupt(reason: StopReason) {

@@ -80,6 +80,11 @@ class Transport(
     var settings: PlaySettings? = null
         private set
 
+    /** Published after a Start is accepted by the mixer, even when reusing the same settings object. */
+    @Volatile
+    var startGeneration = 0L
+        private set
+
     // Mixer-thread state.
     private var tempo = 0.0
     private var loopIndex = 0L
@@ -110,6 +115,11 @@ class Transport(
     fun beatsPerMinuteAt(frame: Double): Double {
         val pattern = settings?.pattern ?: return Double.NaN
         return tempoMap.rateAt(frame) * 60.0 * sampleRate / pattern.beatQuarters
+    }
+
+    fun highestBeatsPerMinuteThrough(frame: Double): Double {
+        val pattern = settings?.pattern ?: return Double.NaN
+        return tempoMap.highestRateThrough(frame) * 60.0 * sampleRate / pattern.beatQuarters
     }
 
     override fun events(
@@ -186,6 +196,7 @@ class Transport(
         leadWindowEnds.fill(start)
         windowIncludesStart = true
         state = State.PLAYING
+        startGeneration++
     }
 
     private fun halt(fromFrame: Long) {

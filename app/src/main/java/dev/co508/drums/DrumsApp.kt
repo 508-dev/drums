@@ -4,6 +4,9 @@ import android.app.Application
 import dev.co508.drums.audio.AudioTrackEngine
 import dev.co508.drums.audio.PlaceholderSounds
 import dev.co508.drums.audio.SampledSounds
+import dev.co508.drums.history.PracticeDatabase
+import dev.co508.drums.history.PracticeHistory
+import dev.co508.drums.history.PracticeRunLog
 import dev.co508.drums.lesson.AssetPackSource
 import dev.co508.drums.lesson.PackLoader
 import dev.co508.drums.lesson.PackResult
@@ -16,6 +19,7 @@ import dev.co508.drums.settings.PracticeSettingsStore
 
 class DrumsApp : Application() {
     val settings: PracticeSettingsStore by lazy { PracticeSettingsStore(this) }
+    val history: PracticeHistory by lazy { PracticeHistory(PracticeDatabase.open(this).practice()) }
 
     /**
      * The app's one audio output, transport and clock. Created on first use;
@@ -30,7 +34,7 @@ class DrumsApp : Application() {
                 click = PlaceholderSounds.click(rate, accented = false),
                 accentClick = PlaceholderSounds.click(rate, accented = true),
             )
-        PlaybackSession(this, engine, transport, AudioClock(engine, rate))
+        PlaybackSession(this, engine, transport, AudioClock(engine, rate), PracticeRunLog(history::record))
     }
 
     /** The sounds lessons play with, loaded at the output's sample rate. */

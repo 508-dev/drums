@@ -552,6 +552,39 @@ About and project-grouped credits are available from Settings. License texts
 are bundled from `licenses/` and readable offline; credits are maintained by
 hand alongside `docs/third-party.md`, with no license-discovery SDK.
 
+Each accepted Play→Stop is one Room practice-log entry, including count-in.
+Rejected audio focus creates no entry. User stop, completion, focus loss,
+unplugging, output errors and leaving the app/screen close the active run once.
+The date is the start wall-clock time; elapsed milliseconds use monotonic time
+so clock/time-zone changes do not alter duration. History formats minutes and
+shows newest sessions first. Highest tempo comes from already-heard raw audio
+clock/tempo-map segments (not rendered-ahead trainer targets or visual offset).
+Best tempo is a playback milestone, **not** a measured playing-accuracy score.
+Writes are queued in application scope, not a departing composable's scope.
+Failed writes remain pending in memory with a visible Retry action; sudden
+process death before a completed write can still lose an active/pending run.
+
+Room v1 uses a stable UUID session primary key and separate pack/lesson IDs,
+with no foreign key to the installed lesson library: removing a pack must not
+erase its history. M5 can attach hit summaries/per-hand/per-note rows by
+`sessionId` foreign key in a related table through a versioned migration; we do
+not invent empty hit-stat fields now. Exported schema JSON is tracked and the
+Room migration helper validates the v1 baseline/data preservation. Real
+upgrade paths get tests when another schema version exists; no destructive
+migration fallback is allowed.
+
+**Backup is enabled for history and settings.** They are user-owned progress
+worth keeping on a phone change, and contain no credentials or microphone data.
+Legacy full-backup rules and Android 12+ data-extraction rules include only the
+database domain (including SQLite journal/WAL sidecars) and `files/datastore/`.
+Bundled lessons/samples, caches and unrelated files are not included. Modern
+cloud backup requires encryption capabilities; device transfer includes the
+same data. Legacy cloud backup follows the platform/user's backup settings.
+This delegates backup to Android's configured transport/user opt-in: it is not
+an app-operated upload service, adds no SDK or INTERNET permission, and does
+not promise backup on every vendor/device. Physical transfer/restore remains a
+manual validation item; JVM tests check the manifest/rules and database reopen.
+
 ### Testing
 
 - JVM unit tests for timing math, MusicXML import and layout math.
