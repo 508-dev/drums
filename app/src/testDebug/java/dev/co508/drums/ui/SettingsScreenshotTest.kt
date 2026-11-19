@@ -50,6 +50,8 @@ class SettingsScreenshotTest {
 
     @Test fun about() {
         compose.setContent { MaterialTheme { AboutContent("test-version", {}) } }
+        compose.onNodeWithText("Ratamatap").assertIsDisplayed()
+        compose.onNodeWithText("Source: https://github.com/508-dev/ratamatap").assertIsDisplayed()
         compose.onNodeWithText("Version test-version").assertIsDisplayed()
         compose.onRoot().captureRoboImage("src/testDebug/screenshots/settings-about.png")
     }

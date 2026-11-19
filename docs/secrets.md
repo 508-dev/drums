@@ -15,8 +15,8 @@ create keys/secrets or execute `scripts/setup-beta-signing.sh`.
 | `BETA_KEY_ALIAS` | Repo-level | `drums-beta` alias |
 | `BETA_KEY_PASSWORD` | Repo-level | Same as beta store password for PKCS12 |
 
-The workflow maps release credentials to `DRUMS_KEYSTORE_*` and beta credentials
-to `DRUMS_BETA_KEYSTORE_*`. F-Droid index signing uses the release key via
+The workflow maps release credentials to `RATAMATAP_KEYSTORE_*` and beta credentials
+to `RATAMATAP_BETA_KEYSTORE_*`. F-Droid index signing uses the release key via
 `FDROID_KEYSTORE`, `FDROID_KEY_ALIAS`, `FDROID_KEYSTORE_PASS`, `FDROID_KEY_PASS`;
 these are workflow environment mappings, not extra independent GitHub secrets.
 Google Play secrets are intentionally absent until a later product decision.
@@ -28,7 +28,7 @@ checks use Android's standard debug key. Never read aloud/commit real properties
 keystores or secret values; stop if any is staged. See [deployment](deployment.md).
 
 The maintainer backs release material up offline under a password-manager
-convention such as `508/android/drums/RELEASE_KEYSTORE_BASE64` (exact GitHub
+convention such as `508/android/ratamatap/RELEASE_KEYSTORE_BASE64` (exact GitHub
 secret names). Losing/changing the release key prevents in-place updates and
 changes the self-hosted F-Droid fingerprint. Beta key loss affects beta installs
 only. No signing material is created or configured by this PR.

@@ -1,6 +1,6 @@
 # Releases and publishing
 
-Drums ships no server. The Android release machinery is adopted now; actual
+Ratamatap ships no server. The Android release machinery is adopted now; actual
 v0.1 distribution starts in **M4**, after the final name/ID, artwork, signing and
 device checks. No tags, releases, signing keys or secrets are created by M0
 agent work. The seed `0.0.1` is not a distributable release. AGP rejects the
@@ -54,8 +54,8 @@ Beta uses workflow-run overrides only on beta outputs; see [beta builds](beta-bu
 
 | Channel | Signing identity |
 | --- | --- |
-| GitHub APK and self-hosted F-Droid | Drums release key, also used to sign the repository index |
-| Beta | Separate Drums beta key; debug-key fallback for local/credential-free compile checks |
+| GitHub APK and self-hosted F-Droid | Ratamatap release key, also used to sign the repository index |
+| Beta | Separate Ratamatap beta key; debug-key fallback for local/credential-free compile checks |
 | f-droid.org (M6) | F-Droid's key by default; reproducible-build sharing is not configured |
 | Google Play (decision in M7) | Play App Signing if adopted; not configured or uploaded by CI |
 
@@ -64,8 +64,8 @@ GitHub/self-hosted builds will be interchangeable, but ordinary f-droid.org
 builds will require uninstall/reinstall to switch. Reproducible builds are a
 possible later way to share the release signature, not an M0 promise.
 
-CI supplies `DRUMS_KEYSTORE_FILE`, `DRUMS_KEYSTORE_PASSWORD`, `DRUMS_KEY_ALIAS`
-and `DRUMS_KEY_PASSWORD`. Local `keystore.properties` (see its example) takes
+CI supplies `RATAMATAP_KEYSTORE_FILE`, `RATAMATAP_KEYSTORE_PASSWORD`, `RATAMATAP_KEY_ALIAS`
+and `RATAMATAP_KEY_PASSWORD`. Local `keystore.properties` (see its example) takes
 precedence when complete. With neither configured, release builds are unsigned,
 as needed by source-building distributors. No release keystore means the
 workflow still tags/writes notes but skips binary publication.
@@ -76,19 +76,19 @@ device before shipping; compilation alone does not prove runtime behavior.
 ### Self-hosted F-Droid (M4)
 
 `scripts/fdroid-publish.sh` maintains a cumulative `gh-pages` repository:
-`https://508-dev.github.io/drums/fdroid/repo`. This URL is not claimed live yet.
+`https://508-dev.github.io/ratamatap/fdroid/repo`. This URL is not claimed live yet.
 Old APKs stay indexed. The branch contains metadata, APKs, signed indexes and
 a landing page publishing the URL and SHA-256 signing fingerprint. Users should
 pin that fingerprint rather than trust the URL alone.
 
-Inputs are `fdroid/config.yml`, `fdroid/metadata/dev.co508.drums.yml` and
+Inputs are `fdroid/config.yml`, `fdroid/metadata/dev.co508.ratamatap.yml` and
 `fastlane/metadata/android/`. The resolved signing config is never committed to
 gh-pages. Enable GitHub Pages from that branch/root after the first publication.
 Store text, release notes and future screenshots live only in fastlane.
 
 ### f-droid.org (M6)
 
-The draft `fdroid/fdroiddata/dev.co508.drums.yml` is a one-time submission
+The draft `fdroid/fdroiddata/dev.co508.ratamatap.yml` is a one-time submission
 payload, not our self-hosted metadata. Update it for a real release/final app ID
 and submit a merge request to <https://gitlab.com/fdroid/fdroiddata> in M6. Nothing
 can be pushed there from our CI. Their bot builds on its own schedule.
@@ -117,22 +117,22 @@ tags, create releases or make store submissions during this milestone.
 
 1. Enable squash merging with **PR title** as commit message and allow Actions
    to create release PRs. Review branch protection/check names with the maintainer.
-2. Create the beta key/secrets manually for the M0 exit criterion. The helper
-   `scripts/setup-beta-signing.sh drums --repo 508-dev/drums` is **human-only**.
-   It uses `~/.config/drums-beta/` and alias `drums-beta`; never reuse release keys.
-3. In M4, the maintainer creates a Drums-only release key and backs it up offline,
+2. The existing beta key was created with slug `drums`; never regenerate it.
+   Its alias `drums-beta` and the four existing repo-level `BETA_*` secrets
+   remain valid. The setup helper is human-only; never reuse release keys.
+3. In M4, the maintainer creates a Ratamatap-only release key and backs it up offline,
    along with passwords. Losing it breaks in-place updates; rotating it also
    invalidates the self-hosted F-Droid fingerprint. Do not generate one casually.
 4. Store release secrets and `RELEASE_PLEASE_TOKEN` under the GitHub **Prod
    environment**, matching `environment: Prod` in release.yml. Beta's four
    secrets are **repo-level**, never Prod: arbitrary branch workflows must not
    see production credentials. Missing/wrong-scope secrets otherwise look empty.
-5. The release-please token should be a fine-grained PAT for `508-dev/drums` only:
+5. The release-please token should be a fine-grained PAT for `508-dev/ratamatap` only:
    **Contents read/write** and **Pull requests read/write**. Without it, fallback
    `GITHUB_TOKEN` creates a release PR without automatically triggered CI; do not
    merge unchecked releases.
 
-Use password-manager paths `508/android/drums/<EXACT_GITHUB_SECRET_NAME>` for
+Use password-manager paths `508/android/ratamatap/<EXACT_GITHUB_SECRET_NAME>` for
 release credentials/token; never put secret values in the repo, logs or process
 arguments. PKCS12 uses one password for store and key, so the two password secret
 names carry the same value. The full table is in [secrets](secrets.md).

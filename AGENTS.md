@@ -58,7 +58,7 @@ timing. Instrumented tests are deferred. Report what was actually tested.
   unless the maintainer explicitly authorizes the relevant action. Key/secret
   creation remains human-only. Release and beta keys must be separate.
 - Never read aloud, print, stage or commit real signing properties, keystores,
-  passwords or `DRUMS_KEYSTORE_*`, `DRUMS_BETA_KEYSTORE_*`, `FDROID_*` values.
+  passwords or `RATAMATAP_KEYSTORE_*`, `RATAMATAP_BETA_KEYSTORE_*`, `FDROID_*` values.
 - Google Play is deferred to M7. Do not enable it or a new distribution target
   without a product decision. See `docs/deployment.md` and `docs/secrets.md`.
 

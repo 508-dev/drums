@@ -5,13 +5,13 @@ AuthorName: 508.dev
 AuthorEmail: caleb@508.dev
 AuthorWebSite: https://508.dev
 WebSite: https://508.dev
-SourceCode: https://github.com/508-dev/drums
-IssueTracker: https://github.com/508-dev/drums/issues
-Changelog: https://github.com/508-dev/drums/releases
-AutoName: Drums
+SourceCode: https://github.com/508-dev/ratamatap
+IssueTracker: https://github.com/508-dev/ratamatap/issues
+Changelog: https://github.com/508-dev/ratamatap/releases
+AutoName: Ratamatap
 
 RepoType: git
-Repo: https://github.com/508-dev/drums.git
+Repo: https://github.com/508-dev/ratamatap.git
 
 Builds: []
 

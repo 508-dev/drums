@@ -9,7 +9,8 @@ name: Beta
 
 on:
   push:
-    branches-ignore: [main, 'release-please--**', gh-pages]
+    # This rename PR must not create a beta release or tag.
+    branches-ignore: [main, 'release-please--**', gh-pages, 'chore/rename-ratamatap']
   delete:
   workflow_dispatch:
 
@@ -105,12 +106,12 @@ jobs:
       - name: Build the signed beta APK
         if: steps.signing.outputs.configured == 'true'
         env:
-          DRUMS_BETA_KEYSTORE_FILE: ${{ runner.temp }}/beta.keystore
-          DRUMS_BETA_KEYSTORE_PASSWORD: ${{ secrets.BETA_KEYSTORE_PASSWORD }}
-          DRUMS_BETA_KEY_ALIAS: ${{ secrets.BETA_KEY_ALIAS }}
-          DRUMS_BETA_KEY_PASSWORD: ${{ secrets.BETA_KEY_PASSWORD }}
-          DRUMS_BETA_VERSION_CODE: ${{ steps.identity.outputs.run }}
-          DRUMS_BETA_VERSION_NAME: ${{ steps.identity.outputs.version_name }}
+          RATAMATAP_BETA_KEYSTORE_FILE: ${{ runner.temp }}/beta.keystore
+          RATAMATAP_BETA_KEYSTORE_PASSWORD: ${{ secrets.BETA_KEYSTORE_PASSWORD }}
+          RATAMATAP_BETA_KEY_ALIAS: ${{ secrets.BETA_KEY_ALIAS }}
+          RATAMATAP_BETA_KEY_PASSWORD: ${{ secrets.BETA_KEY_PASSWORD }}
+          RATAMATAP_BETA_VERSION_CODE: ${{ steps.identity.outputs.run }}
+          RATAMATAP_BETA_VERSION_NAME: ${{ steps.identity.outputs.version_name }}
         run: ./gradlew assembleBeta
 
       - name: Verify the beta signature
@@ -127,7 +128,7 @@ jobs:
           RUN: ${{ steps.identity.outputs.run }}
         run: |
           mkdir -p dist
-          apk="dist/drums-beta-${SLUG}-${RUN}.apk"
+          apk="dist/ratamatap-beta-${SLUG}-${RUN}.apk"
           mv app/build/outputs/apk/beta/app-beta.apk "$apk"
           echo "apk=$apk" >> "$GITHUB_OUTPUT"
 

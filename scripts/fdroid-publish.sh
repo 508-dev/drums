@@ -21,7 +21,7 @@
 #   FDROID_KEY_ALIAS
 #   FDROID_KEYSTORE_PASS, FDROID_KEY_PASS
 #
-# Drums release publishing; requires maintainer-configured signing secrets.
+# Ratamatap release publishing; requires maintainer-configured signing secrets.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 repo_root=$PWD
@@ -33,7 +33,7 @@ apk=$(realpath "$apk")
 : "${GH_TOKEN:?}" "${GITHUB_REPOSITORY:?}" "${FDROID_KEYSTORE:?}"
 : "${FDROID_KEY_ALIAS:?}" "${FDROID_KEYSTORE_PASS:?}" "${FDROID_KEY_PASS:?}"
 
-package_name=dev.co508.drums
+package_name=dev.co508.ratamatap
 # Single source for the version numbers — never recompute the versionCode here.
 eval "$(scripts/sync-version.sh --print)"
 pages_url="https://$(cut -d/ -f1 <<<"$GITHUB_REPOSITORY").github.io/$(cut -d/ -f2 <<<"$GITHUB_REPOSITORY")"
@@ -128,16 +128,16 @@ with open(out, "w") as f:
 <html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drums &mdash; F-Droid repository</title>
+<title>Ratamatap &mdash; F-Droid repository</title>
 <style>
   :root {{ color-scheme: light dark; }}
   body {{ font: 16px/1.6 system-ui, sans-serif; max-width: 42rem; margin: 3rem auto; padding: 0 1.25rem; }}
   code {{ overflow-wrap: anywhere; }}
   pre {{ padding: .75rem; border: 1px solid currentColor; border-radius: .4rem; overflow-x: auto; }}
 </style>
-<h1>Drums</h1>
+<h1>Ratamatap</h1>
 <p>An F-Droid repository with signed release builds of
-<a href="https://github.com/508-dev/drums">Drums</a>.</p>
+<a href="https://github.com/508-dev/ratamatap">Ratamatap</a>.</p>
 <h2>Add this repository</h2>
 <p>In the F-Droid app: <strong>Settings &rarr; Repositories &rarr; +</strong>, then paste:</p>
 <pre><code>{html.escape(add_url)}</code></pre>
@@ -147,7 +147,7 @@ Signing fingerprint (SHA-256): <code>{fp}</code></p>
 project's GitHub Releases, so you can switch between the two without
 uninstalling. Builds from <em>f-droid.org</em> are signed by F-Droid instead and
 are not interchangeable with these.</p>
-<p><a href="https://github.com/508-dev/drums">Source code</a> &middot; GPL-3.0-only</p>
+<p><a href="https://github.com/508-dev/ratamatap">Source code</a> &middot; GPL-3.0-only</p>
 </html>
 """)
 PY

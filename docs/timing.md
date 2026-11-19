@@ -8,7 +8,7 @@ Block At A Time", "Output Buffer: 40 ms, Plus A Burst Per Underrun" and
 
 ## The diagnostics screen
 
-Debug builds have a second launcher entry, **Drums timing**
+Debug builds have a second launcher entry, **Ratamatap timing**
 (`TimingDiagnosticsActivity`, in `app/src/debug/`). Release and beta builds
 don't include it. It shows:
 
@@ -35,7 +35,7 @@ don't include it. It shows:
   visual offset (±150 ms), a "300 BPM 32nds" preset and a stats reset.
 
 While playing, it logs a one-line summary every 10 s under the tag
-`DrumsTiming`.
+`RatamatapTiming`.
 
 ## Output-recovery checks (#51)
 
@@ -46,8 +46,8 @@ replacement, trainer/TempoMap continuity and clock-generation invalidation.
 The diagnostics state also has a Roborazzi reference. No new shipped library
 or permission is needed.
 
-On a debug build, start practice in **Drums timing**, tap **Recreate output**,
-and inspect `AudioTrackEngine`/`DrumsTiming` logcat. A normal replacement should
+On a debug build, start practice in **Ratamatap timing**, tap **Recreate output**,
+and inspect `AudioTrackEngine`/`RatamatapTiming` logcat. A normal replacement should
 finish in roughly a second or less; new timestamps anchor the new stream,
 without a count-in restart or a huge clock-jitter spike. A brief gap/discarded
 old output buffer is expected. Exhausted attempts stop playback; Play retries.
@@ -94,9 +94,9 @@ On the Sony Xperia 10 VII:
 ADB=~/Android/Sdk/platform-tools/adb
 ./gradlew installDebug
 $ADB logcat -c
-$ADB shell am start -n dev.co508.drums.debug/dev.co508.drums.diagnostics.TimingDiagnosticsActivity \
+$ADB shell am start -n dev.co508.ratamatap.debug/dev.co508.drums.diagnostics.TimingDiagnosticsActivity \
     --ez exitTest true --ei durationSeconds 600
-$ADB logcat -s DrumsTiming    # progress every 10 s, then "EXIT TEST DONE"
+$ADB logcat -s RatamatapTiming    # progress every 10 s, then "EXIT TEST DONE"
 ```
 
 "Locked" is judged by eye and ear on the device. The flash should land on the

@@ -1,6 +1,6 @@
 # Development
 
-Drums has one Android `:app` module and no host services or infrastructure.
+Ratamatap has one Android `:app` module and no host services or infrastructure.
 Open the repo root in Android Studio, let Gradle sync, choose a device and Run.
 
 ## CLI setup
@@ -32,11 +32,11 @@ app targets JVM 17, independent of the daemon JDK.
 ./gradlew ktlintFormat
 ./gradlew assembleBeta           # release shrinking, separate .beta identity
 ./gradlew installDebug
-adb shell am start -n dev.co508.drums.debug/dev.co508.drums.MainActivity
+adb shell am start -n dev.co508.ratamatap.debug/dev.co508.drums.MainActivity
 ```
 
 APK outputs: `app/build/outputs/apk/{debug,beta}/`. Debug uses
-`dev.co508.drums.debug`, beta uses `dev.co508.drums.beta`; both install beside
+`dev.co508.ratamatap.debug`, beta uses `dev.co508.ratamatap.beta`; both install beside
 production. Without beta secrets, beta uses the standard Android debug key.
 `assembleRelease` is unsigned without release credentials.
 

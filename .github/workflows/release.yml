@@ -109,10 +109,10 @@ jobs:
       - name: Build the signed APK
         if: steps.targets.outputs.signing == 'true'
         env:
-          DRUMS_KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
-          DRUMS_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
-          DRUMS_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          DRUMS_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RATAMATAP_KEYSTORE_FILE: ${{ runner.temp }}/release.keystore
+          RATAMATAP_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
+          RATAMATAP_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RATAMATAP_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: ./gradlew assembleRelease
 
       - name: Collect artifacts
@@ -121,9 +121,9 @@ jobs:
         run: |
           eval "$(./scripts/sync-version.sh --print)"
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/drums-${version}.apk"
-          (cd dist && sha256sum "drums-${version}.apk" > "drums-${version}.apk.sha256")
-          echo "apk=dist/drums-${version}.apk" >> "$GITHUB_OUTPUT"
+          cp app/build/outputs/apk/release/app-release.apk "dist/ratamatap-${version}.apk"
+          (cd dist && sha256sum "ratamatap-${version}.apk" > "ratamatap-${version}.apk.sha256")
+          echo "apk=dist/ratamatap-${version}.apk" >> "$GITHUB_OUTPUT"
 
       - name: Attach APK to GitHub Release
         if: steps.targets.outputs.signing == 'true'

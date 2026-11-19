@@ -173,7 +173,7 @@ class AudioTrackEngine(
             Thread({
                 Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO)
                 output.run()
-            }, "drums-mixer")
+            }, "ratamatap-mixer")
 
         fun shutDown() {
             output.requestStop()

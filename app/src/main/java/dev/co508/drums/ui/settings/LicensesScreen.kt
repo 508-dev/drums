@@ -79,17 +79,17 @@ internal val licenseProjects =
         ),
         LicenseProject(
             "Built-in lesson content",
-            "Drums contributors. Original notation and wording, traditional patterns; no PAS endorsement. Share and adapt with attribution and share-alike licensing.",
+            "Ratamatap contributors. Original notation and wording, traditional patterns; no PAS endorsement. Share and adapt with attribution and share-alike licensing.",
             "CC BY-SA 4.0",
             "CC-BY-SA-4.0.txt",
-            "https://github.com/508-dev/drums/tree/main/lessons",
+            "https://github.com/508-dev/ratamatap/tree/main/lessons",
         ),
         LicenseProject(
-            "Drums app",
-            "Drums contributors. Free software; corresponding source is in the public repository.",
+            "Ratamatap app",
+            "Ratamatap contributors. Free software; corresponding source is in the public repository.",
             "GPL-3.0-only",
             "GPL-3.0.txt",
-            "https://github.com/508-dev/drums",
+            "https://github.com/508-dev/ratamatap",
         ),
     )
 
