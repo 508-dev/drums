@@ -1,0 +1,11 @@
+Features:
+
+- add diddle and flam rudiment lessons, closes #21
+- add drag and timing lessons, closes #22
+- add library navigation and persistent favorites, closes #15
+- add roll rudiment lessons, closes #20
+- add settings defaults and offline licenses, closes #18
+- AudioEngine with a sample-exact Kotlin AudioTrack mixer, closes #6
+- **audio:** use sampled snare dynamics and buzz rolls
+- complete practice screen and persist lesson settings, closes #16
+- expand lessons into timed strokes and play t
