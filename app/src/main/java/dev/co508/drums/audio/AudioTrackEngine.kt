@@ -4,6 +4,7 @@ import android.content.Context
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.AudioTimestamp
 import android.media.AudioTrack
 import android.os.Process
 import android.util.Log
@@ -80,6 +81,17 @@ class AudioTrackEngine(
     override fun setEventSource(source: EventSource?) {
         this.source = source
     }
+
+    private val timestamp = AudioTimestamp()
+
+    override fun outputTimestamp(out: OutputTimestamp): Boolean =
+        synchronized(lock) {
+            val track = running?.track ?: return false
+            if (!track.getTimestamp(timestamp)) return false
+            out.framePosition = timestamp.framePosition
+            out.nanoTime = timestamp.nanoTime
+            true
+        }
 
     override fun stats(): AudioEngineStats =
         synchronized(lock) { running?.stats() }

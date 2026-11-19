@@ -5,10 +5,10 @@ package dev.co508.drums.audio
  *
  * Frame numbers count output frames from the moment [start] was called: frame 0
  * is the first frame the engine renders. Every [start] begins a new stream at
- * frame 0. See DECISIONS.md, "One Audio Clock" and "Pull-Based Event
- * Scheduling".
+ * frame 0. See DECISIONS.md, "One Audio Clock" and "The Mixer Pulls Events,
+ * One Block At A Time".
  */
-interface AudioEngine {
+interface AudioEngine : OutputTimestampSource {
     /** Output sample rate in Hz. Sounds must be generated or resampled at this rate. */
     val sampleRate: Int
 
@@ -28,6 +28,27 @@ interface AudioEngine {
 
     /** A snapshot of the engine's counters, for diagnostics. May be called from any thread. */
     fun stats(): AudioEngineStats
+}
+
+/** Where the output stream's playback actually is, for the audio clock. */
+fun interface OutputTimestampSource {
+    /**
+     * Fills [out] with a recent (frame, time) pair: the output frame that was
+     * presented at the speaker or headphone jack at [OutputTimestamp.nanoTime].
+     * Returns false while no timestamp is available, for example just after
+     * [AudioEngine.start] or while stopped. May be called from any thread, but
+     * not too often: a few times a second is plenty.
+     */
+    fun outputTimestamp(out: OutputTimestamp): Boolean
+}
+
+/** A frame of the output stream and when it was presented. Mutable, so it can be reused. */
+class OutputTimestamp {
+    /** A frame number of the stream, counting from 0 at [AudioEngine.start]. */
+    var framePosition: Long = 0
+
+    /** When that frame was presented, on the [System.nanoTime] clock (CLOCK_MONOTONIC). */
+    var nanoTime: Long = 0
 }
 
 /**

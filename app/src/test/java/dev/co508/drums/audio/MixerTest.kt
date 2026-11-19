@@ -1,5 +1,7 @@
 package dev.co508.drums.audio
 
+import dev.co508.drums.ALLOCATION_NOISE_BYTES
+import dev.co508.drums.threadAllocatedBytes
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -265,18 +267,6 @@ class MixerTest {
         repeat(20_000) { mixer.render(block, 240, source) }
         val bytes = allocated() - before
         // Reading the counter reflectively costs a few bytes; one allocation per block would be 20 000+.
-        assertTrue("$bytes bytes allocated while rendering", bytes < 1_024)
+        assertTrue("$bytes bytes allocated while rendering", bytes < ALLOCATION_NOISE_BYTES)
     }
-
-    /**
-     * The current thread's allocation counter, from the JDK's com.sun.management
-     * extension. Found reflectively: the Android compile classpath doesn't have it.
-     */
-    private fun threadAllocatedBytes(): (() -> Long)? =
-        runCatching {
-            val bean = Class.forName("java.lang.management.ManagementFactory").getMethod("getThreadMXBean").invoke(null)
-            val method = Class.forName("com.sun.management.ThreadMXBean").getMethod("getCurrentThreadAllocatedBytes")
-            method.invoke(bean) as Long // Fails here, not later, if unsupported.
-            return@runCatching { method.invoke(bean) as Long }
-        }.getOrNull()
 }
