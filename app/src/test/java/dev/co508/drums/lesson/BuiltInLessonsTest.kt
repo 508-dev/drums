@@ -42,13 +42,14 @@ class BuiltInLessonsTest {
     ) = Fraction.of(n, d)
 
     @Test
-    fun everyLessonIsOneRepeatedBarOfFourFour() {
+    fun everyLessonIsOneRepeatedBar() {
         for (lesson in pack.lessons) {
             val measure = lesson.notation.measures.single()
-            assertEquals(lesson.id, TimeSignature.FOUR_FOUR, measure.timeSignature)
+            val expectedTime = if (lesson.id == "double-paradiddle") TimeSignature(3, 4) else TimeSignature.FOUR_FOUR
+            assertEquals(lesson.id, expectedTime, measure.timeSignature)
             assertTrue(lesson.id, measure.repeatStart)
             assertEquals(lesson.id, 2, measure.repeatTimes)
-            assertEquals(lesson.id, f(4), measure.length)
+            assertEquals(lesson.id, expectedTime.barQuarters, measure.length)
             // The written tempo mark matches the start tempo in pack.json.
             assertEquals(
                 lesson.id,
@@ -124,6 +125,59 @@ class BuiltInLessonsTest {
         val strokes = firstPass("single-paradiddle")
         assertEquals("RLRRLRLL".repeat(2), hands(strokes))
         assertEquals((0 until 16).map { if (it % 4 == 0) ACCENT else NORMAL }, strokes.map { it.dynamic })
+    }
+
+    @Test
+    fun diddleAndFlamMainStickingAndGracePlacement() {
+        val expected =
+            mapOf(
+                "double-paradiddle" to "RLRLRRLRLRLL",
+                "triple-paradiddle" to "RLRLRLRRLRLRLRLL",
+                "single-paradiddle-diddle" to "RLRRLL".repeat(4),
+                "flam-tap" to "RRLL".repeat(3),
+                "flamacue" to "RLRLRLRLRL",
+                "flam-paradiddle" to "RLRRLRLL".repeat(2),
+                "single-flammed-mill" to "RRLRLLRL".repeat(2),
+                "flam-paradiddle-diddle" to "RLRRLL".repeat(4),
+                "pataflafla" to "RLRL".repeat(4),
+                "swiss-army-triplet" to "RRL".repeat(4),
+                "inverted-flam-tap" to "RLLR".repeat(3),
+                "flam-drag" to "RLRLRL".repeat(2),
+            )
+        val graceGroups =
+            mapOf(
+                "flam-tap" to listOf(0, 2, 4, 6, 8, 10),
+                "flamacue" to listOf(0, 4, 5, 9),
+                "flam-paradiddle" to listOf(0, 4, 8, 12),
+                "single-flammed-mill" to listOf(0, 4, 8, 12),
+                "flam-paradiddle-diddle" to listOf(0, 6, 12, 18),
+                "pataflafla" to listOf(0, 3, 4, 7, 8, 11, 12, 15),
+                "swiss-army-triplet" to listOf(0, 3, 6, 9),
+                "inverted-flam-tap" to listOf(0, 2, 4, 6, 8, 10),
+                "flam-drag" to listOf(0, 1, 3, 4, 6, 7, 9, 10),
+            )
+        for ((id, expectedHands) in expected) {
+            val notation = lesson(id).notation
+            val main = firstPass(id).filter { it.graceLead == 0 }
+            assertEquals(id, expectedHands, hands(main))
+            val actualGraceGroups = notation.notes.mapIndexedNotNull { i, n -> i.takeIf { n.graceNotes.isNotEmpty() } }
+            assertEquals(id, graceGroups[id].orEmpty(), actualGraceGroups)
+            assertTrue(id, notation.notes.all { n -> n.graceNotes.all { it.hand != n.hand } })
+            val expectedPositions =
+                when (id) {
+                    "flamacue" -> listOf(f(0), f(1, 4), f(1, 2), f(3, 4), f(1), f(2), f(9, 4), f(5, 2), f(11, 4), f(3))
+                    "single-paradiddle-diddle", "flam-paradiddle-diddle" -> main.indices.map { f(it.toLong(), 6) }
+                    "flam-tap", "inverted-flam-tap", "swiss-army-triplet", "flam-drag" ->
+                        main.indices.map { f(it.toLong(), 3) }
+                    else -> main.indices.map { f(it.toLong(), 4) }
+                }
+            assertEquals(id, expectedPositions, main.map { it.position })
+        }
+        val flamacueAccents =
+            lesson("flamacue").notation.notes.mapIndexedNotNull { i, n -> i.takeIf { n.accent != Accent.NONE } }
+        assertEquals(listOf(1, 6), flamacueAccents)
+        val flamDragGraces = lesson("flam-drag").notation.notes.map { it.graceNotes.size }
+        assertEquals(List(4) { listOf(1, 2, 0) }.flatten(), flamDragGraces)
     }
 
     @Test
