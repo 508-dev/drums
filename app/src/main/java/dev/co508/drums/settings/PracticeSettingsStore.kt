@@ -87,6 +87,16 @@ class PracticeSettingsStore(
         writes.trySend(Operation.Edit { it.copy(view = view.name) })
     }
 
+    fun saveZoom(pixelsPerBeat: Float) {
+        writes.trySend(
+            Operation.Edit {
+                it.copy(pixelsPerBeat = pixelsPerBeat).let { value ->
+                    value.copy(pixelsPerBeat = value.zoomPixelsPerBeat)
+                }
+            },
+        )
+    }
+
     /** Opening another screen must see earlier accepted edits, even during rapid navigation. */
     suspend fun snapshot(): PracticePreferences {
         val result = CompletableDeferred<PracticePreferences>()

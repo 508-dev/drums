@@ -80,3 +80,19 @@ are committed in `app/src/testDebug/screenshots`. `scripts/test.sh`,
 with diff images in `app/build/outputs/roborazzi/`. After an intended
 rendering change, re-record with `./gradlew recordRoborazziDebug` and review
 the new images before committing them.
+
+## Practice interruption diagnostics
+
+`adb logcat -s PlaybackSession:I AudioTrackEngine:E` shows timestamped stop
+reasons, focus changes and audio output failures. Notification “may duck” focus
+does not stop playback; calls/other players and unplugged headphones do. When
+reporting a stopped loop, include the reason, lesson, tempo and whether the
+button returned to Play. The progress banner counts whole expanded lessons,
+including written repeats, not written bars.
+
+Practice settings live in `files/datastore/practice.json` (typed DataStore).
+The notation view and falling-note zoom are global; playback options are
+keyed by both pack and lesson ID. The legacy SharedPreferences view key is
+migrated on first read. JVM tests cover migration, rapid-save ordering,
+recreation, loop persistence and the trainer schedule; device checks still
+need to judge sound, synchronization, notification ducking and headphone routes.

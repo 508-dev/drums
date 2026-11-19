@@ -208,7 +208,7 @@ class AudioTrackEngine(
 
         private fun fail(error: Int) {
             writeError = error
-            Log.e(TAG, "AudioTrack.write failed: $error")
+            Log.e(TAG, "AudioTrack.write failed: $error wallTimeMillis=${System.currentTimeMillis()}")
         }
 
         fun shutDown() {

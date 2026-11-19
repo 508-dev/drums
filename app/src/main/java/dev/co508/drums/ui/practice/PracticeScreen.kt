@@ -1,6 +1,7 @@
 package dev.co508.drums.ui.practice
 
 import android.content.res.Configuration
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -85,11 +86,14 @@ fun PracticeScreen(
     }
     var settings by remember(lesson.preferenceKey) { mutableStateOf(loaded.lesson(lesson)) }
     var practiceView by remember { mutableStateOf(loaded.practiceView) }
+    var pixelsPerBeat by remember { mutableStateOf(loaded.zoomPixelsPerBeat) }
     var playing by remember { mutableStateOf(session.isPlaying) }
     var message by remember { mutableStateOf<String?>(null) }
     var frameNanos by remember { mutableLongStateOf(0L) }
     var heardTempo by remember { mutableIntStateOf(settings.tempo) }
     var runSettings by remember { mutableStateOf<PlaySettings?>(null) }
+    var progress by remember { mutableStateOf<String?>(null) }
+    var tempoStepped by remember { mutableStateOf(false) }
     val writeError by store.writeError.collectAsState()
     val timeline = remember(lesson, settings.leadWithLeft) { Expansion.expand(lesson.notation, settings.leadWithLeft) }
     val pattern = remember(timeline, kit) { LessonPattern.build(timeline, kit) }
@@ -102,9 +106,15 @@ fun PracticeScreen(
     }
 
     LaunchedEffect(session, lesson.preferenceKey) {
+        var highlightUntil = 0L
+        var nextOutputCheck = 0L
         while (true) {
             withFrameNanos { t ->
                 frameNanos = t
+                if (t >= nextOutputCheck) {
+                    session.checkOutput()
+                    nextOutputCheck = t + 1_000_000_000L
+                }
                 val frame = session.clock.visualFrameAt(t)
                 if (session.isPlaying &&
                     runSettings != null &&
@@ -113,17 +123,26 @@ fun PracticeScreen(
                 ) {
                     val bpm = session.transport.beatsPerMinuteAt(frame)
                     if (bpm.isFinite() && bpm > 0) {
+                        if (runSettings?.trainer != null &&
+                            bpm.roundToInt() > heardTempo
+                        ) {
+                            highlightUntil = t + 800_000_000L
+                        }
                         heardTempo = bpm.roundToInt()
                         if (settings.tempo != heardTempo) change(settings.rememberHeardTempo(bpm))
+                        progress =
+                            practiceProgress(requireNotNull(runSettings), session.transport.positionAt(frame), bpm)
                     }
                     // FINISHED is ahead of the speaker by the output buffer. Wait for the heard end.
                     if (session.transport.state == Transport.State.FINISHED &&
                         session.transport.positionAt(frame) >= pattern.lengthQuarters
                     ) {
-                        session.stop()
+                        session.stop(PlaybackSession.StopReason.TRANSPORT_FINISHED)
                     }
                 }
                 playing = session.isPlaying
+                tempoStepped = playing && t < highlightUntil
+                if (!playing) progress = null
             }
         }
     }
@@ -132,6 +151,17 @@ fun PracticeScreen(
         val previous = view.keepScreenOn
         view.keepScreenOn = playing
         onDispose { view.keepScreenOn = previous }
+    }
+    DisposableEffect(session) {
+        session.onInterrupted = { reason ->
+            message =
+                when (reason) {
+                    PlaybackSession.StopReason.HEADPHONES_UNPLUGGED -> "Playback stopped: headphones disconnected."
+                    PlaybackSession.StopReason.ENGINE_ERROR -> "Playback stopped: audio output error."
+                    else -> "Playback stopped: a call or another player took audio focus."
+                }
+        }
+        onDispose { session.onInterrupted = null }
     }
     val now: () -> Double = {
         val frame = session.clock.visualFrameAt(frameNanos)
@@ -171,6 +201,13 @@ fun PracticeScreen(
             onBack()
         },
         message = message ?: writeError,
+        progress = progress,
+        tempoStepped = tempoStepped,
+        pixelsPerBeat = pixelsPerBeat,
+        onZoom = {
+            pixelsPerBeat = it
+            store.saveZoom(it)
+        },
     )
 }
 
@@ -189,6 +226,10 @@ internal fun PracticeContent(
     onPlayStop: () -> Unit,
     onBack: () -> Unit,
     message: String? = null,
+    progress: String? = null,
+    tempoStepped: Boolean = false,
+    pixelsPerBeat: Float = PracticePreferences.DEFAULT_ZOOM,
+    onZoom: (Float) -> Unit = {},
 ) {
     val timeline = remember(lesson, settings.leadWithLeft) { Expansion.expand(lesson.notation, settings.leadWithLeft) }
     val layout = remember(timeline) { FallingNotesLayout.from(timeline) }
@@ -213,7 +254,7 @@ internal fun PracticeContent(
                     layout,
                     now,
                     modifier,
-                    pixelsPerBeat = settings.pixelsPerBeat.dp,
+                    pixelsPerBeat = pixelsPerBeat.dp,
                     showCounts = settings.showCounts,
                     lightUp = playing,
                 )
@@ -221,7 +262,19 @@ internal fun PracticeContent(
         }
     }
     val controls: @Composable () -> Unit = {
-        PracticeControls(settings, playing, heardTempo, practiceView, onChange, onTempo, onPlayStop, message, beatLabel)
+        PracticeControls(
+            settings,
+            playing,
+            heardTempo,
+            practiceView,
+            onChange,
+            onTempo,
+            onPlayStop,
+            message,
+            beatLabel,
+            pixelsPerBeat,
+            onZoom,
+        )
         TextButton(onClick = { tipsExpanded = !tipsExpanded }) {
             Text(if (tipsExpanded) "Hide description and tips" else "Description and tips")
         }
@@ -239,6 +292,20 @@ internal fun PracticeContent(
             for ((option, label) in listOf(PracticeView.FALLING_NOTES to "Falling", PracticeView.SHEET to "Sheet")) {
                 FilterChip(selected = practiceView == option, onClick = { onView(option) }, label = { Text(label) })
             }
+        }
+        progress?.let {
+            val colors = MaterialTheme.colorScheme
+            Text(
+                "$heardTempo BPM · $it",
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .background(
+                            if (tempoStepped) colors.tertiaryContainer else colors.surfaceContainer,
+                        ).padding(horizontal = 12.dp, vertical = 6.dp),
+                color = if (tempoStepped) colors.onTertiaryContainer else colors.onSurface,
+                style = MaterialTheme.typography.labelLarge,
+            )
         }
         if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             Row(Modifier.weight(1f)) {

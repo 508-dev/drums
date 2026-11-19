@@ -36,6 +36,8 @@ internal fun PracticeControls(
     onPlayStop: () -> Unit,
     message: String?,
     beatLabel: String,
+    pixelsPerBeat: Float,
+    onZoom: (Float) -> Unit,
 ) {
     val tempo = if (playing) heardTempo else settings.tempo
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -114,9 +116,9 @@ internal fun PracticeControls(
     if (view == PracticeView.FALLING_NOTES) {
         Text("Zoom")
         Slider(
-            value = settings.pixelsPerBeat,
-            onValueChange = { onChange(settings.copy(pixelsPerBeat = it)) },
-            valueRange = 48f..240f,
+            value = pixelsPerBeat,
+            onValueChange = onZoom,
+            valueRange = 48f..480f,
             modifier = Modifier.semantics { contentDescription = "Zoom" },
         )
         Toggle("Counting", settings.showCounts) { onChange(settings.copy(showCounts = it)) }

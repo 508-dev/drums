@@ -304,12 +304,20 @@ position carries on.
 
 ### Playback Yields To Calls And Unplugged Headphones
 
-Pressing play takes audio focus (media usage). Any focus loss stops playback:
-a phone call, another player, or a transient "may duck" loss. A ducked
-metronome is no use to someone keeping time against it. Unplugging the
+Pressing play takes audio focus (media usage). Permanent or transient focus
+loss stops playback (a phone call or another player). A transient "may duck"
+loss does **not** stop practice: notification pings may briefly auto-duck the
+audio. The original "never duck a metronome" policy made ordinary message
+notifications end a run, which is worse than briefly lowering its volume.
+Unplugging the
 headphones (`ACTION_AUDIO_BECOMING_NOISY`) also stops playback, so the click
 never jumps to the loudspeaker. Regaining focus doesn't resume; the player
 presses play again. Focus is given back on stop.
+
+Stop requests log their reason and wall-clock timestamp (`PlaybackSession` in
+logcat); focus callbacks also log their numeric type. Output write failures
+log their error code and timestamp. The practice screen explains interruptions
+and polls for output failure; restarting a failed output is handled by #51.
 
 The output stream stays open, playing silence, while the practicing screen is
 shown. Play then starts on a clock that is already running and anchored, and
@@ -512,12 +520,18 @@ and per-lesson preferences use DataStore. Lessons are files, not database rows.
 
 Practice settings use one typed JSON DataStore (1.2.1, matching `soundboard`).
 Per-lesson keys include both pack and lesson IDs, so imported packs cannot
-overwrite a built-in lesson's choices. The view toggle remains global. Start
+overwrite a built-in lesson's choices. The view toggle and falling-note zoom
+remain global, shared across lessons and restarts. The default spacing is
+220 dp per beat (twice the M2 default), so sixteenths are more separated at
+the hit line; the zoom slider spans 48–480 dp per beat. Start
 tempo is separate from the last tempo reached, so replaying a speed trainer
 starts at its configured start rather than its previous target. Count-in,
 loop, lead hand and trainer setup change while stopped; sound switches,
 volumes and the manual tempo control apply live. Accepted writes are queued
 in application scope so navigating away does not cancel them.
+The heard tempo and loop/trainer progress stay visible above the notation;
+trainer steps get a brief highlight. A loop means the whole expanded lesson,
+including written repeats, not one written bar.
 
 ### Testing
 

@@ -116,7 +116,6 @@ class PracticePreferencesTest {
                 trainerTarget = 20,
                 clickVolume = Float.NaN,
                 snareVolume = -1f,
-                pixelsPerBeat = Float.POSITIVE_INFINITY,
             ).normalized()
         assertEquals(30, settings.tempo)
         assertEquals(300, settings.trainerTarget)
@@ -124,7 +123,7 @@ class PracticePreferencesTest {
         assertEquals(1, settings.trainerLoops)
         assertEquals(1f, settings.clickVolume)
         assertEquals(0f, settings.snareVolume)
-        assertEquals(110f, settings.pixelsPerBeat)
+        assertEquals(220f, PracticePreferences(pixelsPerBeat = Float.POSITIVE_INFINITY).zoomPixelsPerBeat)
     }
 
     @Test
@@ -145,10 +144,10 @@ class PracticePreferencesTest {
                     trainerStep = 3,
                     trainerLoops = 7,
                     trainerTarget = 180,
-                    pixelsPerBeat = 200f,
                     showCounts = false,
                 )
-            val original = PracticePreferences(PracticeView.SHEET.name, mapOf("lesson" to settings))
+            val original =
+                PracticePreferences(PracticeView.SHEET.name, mapOf("lesson" to settings), pixelsPerBeat = 288f)
             val output = ByteArrayOutputStream()
             PracticePreferencesSerializer.writeTo(original, output)
             assertEquals(original, PracticePreferencesSerializer.readFrom(ByteArrayInputStream(output.toByteArray())))

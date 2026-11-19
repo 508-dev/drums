@@ -48,6 +48,7 @@ class PracticeScreenshotTest {
     private fun screen(
         view: PracticeView = PracticeView.FALLING_NOTES,
         trainer: Boolean = false,
+        progress: String? = null,
     ) {
         compose.setContent {
             var settings by remember { mutableStateOf(LessonPreferences(trainer = trainer)) }
@@ -57,7 +58,7 @@ class PracticeScreenshotTest {
                     lesson,
                     settings,
                     selected,
-                    false,
+                    progress != null,
                     settings.tempo,
                     { 0.0 },
                     onChange = {
@@ -71,6 +72,8 @@ class PracticeScreenshotTest {
                     onView = { selected = it },
                     onPlayStop = {},
                     onBack = {},
+                    progress = progress,
+                    tempoStepped = progress != null,
                 )
             }
         }
@@ -79,6 +82,12 @@ class PracticeScreenshotTest {
     @Test fun portrait() {
         screen()
         compose.onRoot().captureRoboImage("src/testDebug/screenshots/practice-portrait.png")
+    }
+
+    @Test fun trainerProgressIsVisible() {
+        screen(trainer = true, progress = "Loop 2/4, next +5 → 85 BPM")
+        compose.onNodeWithText("80 BPM · Loop 2/4, next +5 → 85 BPM").assertIsDisplayed()
+        compose.onRoot().captureRoboImage("src/testDebug/screenshots/practice-trainer-progress.png")
     }
 
     @Test

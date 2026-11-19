@@ -56,7 +56,9 @@ class PracticeSettingsStoreTest {
                 // Simulate rapid slider edits followed by immediate navigation away.
                 for (tempo in 60..160) store.saveLesson(lesson, LessonPreferences(tempo = tempo))
                 store.saveView(PracticeView.FALLING_NOTES)
+                store.saveZoom(320f)
                 assertEquals(160, store.snapshot().lesson(lesson).tempo)
+                assertEquals(320f, store.snapshot().zoomPixelsPerBeat)
                 withTimeout(10_000) {
                     store.data.first { it.lesson(lesson).tempo == 160 && it.practiceView == PracticeView.FALLING_NOTES }
                 }
@@ -69,6 +71,7 @@ class PracticeSettingsStoreTest {
                 val reopened = PracticeSettingsStore(context, CoroutineScope(secondJob + Dispatchers.IO)).data.first()
                 assertEquals(160, reopened.lesson(lesson).tempo)
                 assertEquals(PracticeView.FALLING_NOTES, reopened.practiceView)
+                assertEquals(320f, reopened.zoomPixelsPerBeat)
             } finally {
                 secondJob.cancelAndJoin()
             }

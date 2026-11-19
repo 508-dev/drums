@@ -13,7 +13,15 @@ import kotlin.math.roundToInt
 data class PracticePreferences(
     val view: String = PracticeView.FALLING_NOTES.name,
     val lessons: Map<String, LessonPreferences> = emptyMap(),
+    val pixelsPerBeat: Float = DEFAULT_ZOOM,
 ) {
+    val zoomPixelsPerBeat: Float
+        get() = if (pixelsPerBeat.isFinite()) pixelsPerBeat.coerceIn(48f, 480f) else DEFAULT_ZOOM
+
+    companion object {
+        const val DEFAULT_ZOOM = 220f
+    }
+
     fun lesson(lesson: Lesson): LessonPreferences =
         (
             lessons[lesson.preferenceKey] ?: LessonPreferences(
@@ -45,7 +53,6 @@ data class LessonPreferences(
     val trainerStep: Int = 5,
     val trainerLoops: Int = 4,
     val trainerTarget: Int = 120,
-    val pixelsPerBeat: Float = 110f,
     val showCounts: Boolean = true,
 ) {
     /** Remember the latest heard trainer step, never replace the trainer's configured start. */
@@ -62,7 +69,6 @@ data class LessonPreferences(
             trainerTarget = trainerTarget.coerceIn(start, 300),
             clickVolume = clickVolume.finiteVolume(),
             snareVolume = snareVolume.finiteVolume(),
-            pixelsPerBeat = if (pixelsPerBeat.isFinite()) pixelsPerBeat.coerceIn(48f, 240f) else 110f,
         )
     }
 
