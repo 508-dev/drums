@@ -1,112 +1,69 @@
-# AI Agent Development Guide
+# Agent Development Guide
 
-## Environment
+## Scope and authority
 
-- Only `python3` is guaranteed. Do not assume `python` exists.
-- Prefer package scripts and repo-provided entrypoints over raw commands. When a
-  repo uses Python, prefer `uv run`; when it uses Bun, prefer `bun run`.
-- Treat install, dev, and test commands as executable code. Inspect manifests, package scripts, lockfiles, Docker files, and setup scripts before running them in unfamiliar repos.
+This is a single-module native Android app: Kotlin, Jetpack Compose Material 3,
+Gradle Kotlin DSL. Read `DECISIONS.md` and `docs/roadmap.md` before feature work.
+They are the product/architecture authority. `MANIFEST.md` is historical devkit
+inventory, not the current file list. No Node, Python, Ruby or Docker stack.
 
-## Dependency Supply-Chain Safety
+## Build and validation
 
-- Bun: keep `bunfig.toml` with `minimumReleaseAge = 604800`.
-- uv: add optional `exclude-newer = "P7D"` only after confirming the local
-  `uv` version supports relative `exclude-newer` durations.
-- pnpm: keep `minimumReleaseAge: 10080` in `pnpm-workspace.yaml`.
-- Bundler: use `source "https://rubygems.org", cooldown: 7` only with Bundler
-  `4.0.13` or newer, then pin that Bundler version in `Gemfile.lock`.
-- CI should use locked installs:
-  - `bun install --frozen-lockfile`
-  - `uv sync --locked` when a Python workspace is present
-  - `pnpm install --frozen-lockfile` when pnpm is used.
-  - `bundle install` with deployment/frozen settings when Ruby is used.
-- Commit lockfiles.
+- Prefer `./gradlew` and repo scripts. Inspect scripts before running them.
+- Android SDK: use `ANDROID_HOME` or gitignored `local.properties`. Do not guess
+  a successful build when the SDK or network is missing.
+- The wrapper pins Gradle 9.4.1; `gradle/gradle-daemon-jvm.properties` pins JDK
+  25 as in soundboard. A local JDK 21 can launch the wrapper; Gradle can download
+  the daemon JDK. Java bytecode target is 17.
+- AGP 9 has built-in Kotlin: **never apply kotlin-android**. The Compose
+  compiler sub-plugin is still required.
 
-## Repository Shape
+```bash
+./scripts/lint.sh              # ktlintCheck lintDebug
+./scripts/test.sh              # testDebugUnitTest
+./scripts/check-all.sh         # check assembleDebug
+./scripts/sync-version.sh --check
+./gradlew assembleBeta         # debug-key fallback without beta credentials
+```
 
-- `AGENTS.md`: canonical agent operating instructions.
-- `MANIFEST.md`: file inventory and template-selection checklist.
-- `DECISIONS.md`: decision authority for devkit topology and policy.
-- `docs`: contributor-facing documentation.
-- `extras`: optional workflows, deployment examples, and support add-ons.
-- `scripts`: stable project entrypoints.
-- `skills`: optional project-local agent skills.
-- `stacks/typescript`: framework-neutral Bun/TypeScript conventions.
-- `stacks/python`: optional Python API/shared-package workspace.
-- `stacks/ruby`: optional Ruby/Rails/Rack workspace conventions.
-- `stacks/android`: optional native Android (Kotlin/Compose) release and
-  publishing convention pack — no app scaffold, since app structure is too
-  product-specific to template.
-- `.context`: gitignored workspace-local scratch for Conductor and agents.
+Use `./gradlew ktlintFormat` for Kotlin formatting. JVM tests need no emulator;
+`installDebug` needs a device. Build/test success does not verify sound or visual
+timing. Instrumented tests are deferred. Report what was actually tested.
 
-## Development Workflow
+## Editing
 
-- Run infrastructure with Docker Compose.
-- Run app services on the host for reload speed and debuggability.
-- Use `./scripts/worktree-ports.sh env` to inspect local ports.
-- Use `./scripts/docker-compose.sh` instead of raw `docker compose` for local worktree-safe infra.
-- Use `./scripts/dev.sh` for host-run app services.
-- Treat `apps/*` as disposable wiring examples, not framework code to cargo-cult into every project.
-- Do not assume a frontend framework from this devkit. Choose Next.js, Vite, TanStack Start, Astro, Expo, or no frontend based on the target project.
-- Keep `.worktreeinclude` as a short allowlist of ignored local config to copy into sibling worktrees, such as `.env`, `.env.local`, and `.sops.yaml`.
-- Keep `.dockerignore` in sync with the repo shape so Docker build contexts exclude secrets, local dependencies, caches, `.context/`, and generated outputs.
-
-## Editing Rules
-
-- Read target files, callers, exports, tests, and obvious shared utilities before editing.
-- When applying this devkit or cleaning up a GitHub-template-generated repo,
-  read `MANIFEST.md` and produce a selection report before editing. Cover every
-  top-level path in this devkit and the target repo with an adopt, adapt, skip,
-  delete, or defer decision and a one-line reason.
-- Keep edits surgical.
-- Do not reformat unrelated files.
-- Add or update tests when behavior changes.
-- Update `.env.example` when adding configuration.
+- Read target code, callers and tests. Keep changes surgical and test behavior.
+- All code is in `app/`; release metadata is in `fastlane/` and `fdroid/`.
+- Keep shipped dependencies transitively free software: AndroidX/Kotlin-class
+  libraries only. No Play Services, Firebase, analytics, ads or closed SDKs.
+- No DI framework; construct shared objects in `DrumsApp` when needed.
+- Do not add permissions speculatively. No INTERNET permission through v0.3.
+- Pins live in `gradle/libs.versions.toml`; prefer Renovate and update
+  `docs/tooling.md` for deliberate changes. Do not add unused future libraries.
+- Once the licenses screen exists, maintain its dependency list by hand when
+  adding/removing shipped libraries; never use the Play Services license plugin.
 - Update docs when changing developer workflows.
-- When selecting the Python stack, the included examples use Pydantic for
-  settings/boundary schemas and Alembic for database migrations. Keep them when
-  they fit; replace them when the target repo has better existing choices.
-- Before adding uv cooldown config, run `uv --no-config --version`. Relative
-  `exclude-newer` values such as `P7D` require uv `0.9.17` or newer. If the
-  target machine is older, ask before upgrading uv; do not write `P7D` or
-  `7 days` into `pyproject.toml` or `uv.toml` because older uv clients fail
-  during settings discovery.
-- Before adding Bundler cooldown config, run `bundle --version`. The
-  `cooldown:` source option requires Bundler `4.0.13` or newer. If Bundler is
-  older, ask before upgrading it; do not add cooldown syntax that the target
-  repo's Bundler cannot parse.
-- When selecting the Android stack, do not assume F-Droid distribution or
-  hand-edit `versionCode`/`versionName` — see `stacks/android/README.md` for
-  the versioning model and the GPL-3/free-software-dependency constraint,
-  which only applies when the target app actually targets F-Droid.
-- The TypeScript stack includes Drizzle examples for database access. Keep
-  Drizzle when it fits; replace it when the target repo already uses another
-  data-access layer.
-- Keep secrets in environment variables or SOPS-managed files, never in code.
 
-## `.context/`
+## Releases and secrets
 
-Use `.context/` for workspace-local agent scratch only. Do not commit it.
+- `version.txt` is the version source. release-please updates it and CHANGELOG.
+  Run `scripts/sync-version.sh` after a deliberate version change and commit
+  generated Gradle literals and store notes. Do not hand-edit derived values.
+- `versionCode` and `versionName` must be plain literals, each on its own line
+  in `app/build.gradle.kts`; F-Droid parses them textually.
+- Beta-only overrides belong in `androidComponents`, not defaultConfig.
+- Store copy belongs in `fastlane/metadata/android/`; do not duplicate it.
+- **Agents never create signing keys or secrets**, execute
+  `scripts/setup-beta-signing.sh`, push tags, create releases or submit to stores
+  unless the maintainer explicitly authorizes the relevant action. Key/secret
+  creation remains human-only. Release and beta keys must be separate.
+- Never read aloud, print, stage or commit real signing properties, keystores,
+  passwords or `DRUMS_KEYSTORE_*`, `DRUMS_BETA_KEYSTORE_*`, `FDROID_*` values.
+- Google Play is deferred to M7. Do not enable it or a new distribution target
+  without a product decision. See `docs/deployment.md` and `docs/secrets.md`.
 
-Durable project knowledge belongs in tracked docs:
+## Workspace scratch
 
-- Architecture and layout: `README.md`, `docs/template-proposal.md`, `docs/pattern-report.md`.
-- Tooling decisions: `docs/tooling.md`, `docs/supply-chain.md`.
-- Local development runbooks: `docs/development.md`.
-- Repeated failure patterns: concise tracked docs, not raw logs or transcripts.
-
-## Validation
-
-Before calling work complete, run the narrowest relevant checks:
-
-```bash
-./scripts/lint.sh
-./scripts/typecheck.sh
-./scripts/test.sh
-```
-
-For broader changes, run:
-
-```bash
-./scripts/check-all.sh
-```
+`.context/` is gitignored workspace-local scratch. Never commit it. Durable
+knowledge belongs in tracked README/docs/DECISIONS, not raw logs/transcripts.
+Treat unfamiliar changes as user work; do not reset or discard them.

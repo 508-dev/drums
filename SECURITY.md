@@ -1,40 +1,16 @@
-# Security Policy
+# Security
 
-## Reporting Vulnerabilities
+Report vulnerabilities privately to **caleb@508.dev**, not a public issue.
+Include affected commit/version, reproduction steps and impact; omit passwords,
+keystores and personal device data. Security support currently targets `main`.
 
-Do not open public issues for vulnerabilities or leaked secrets.
+The skeleton requests no dangerous runtime permissions and has no network or
+recording code. AndroidX adds an app-private signature permission for receivers.
+Later imports must treat files as untrusted input. Shipped dependencies must
+be free software; no telemetry, ads or proprietary SDKs are allowed.
 
-Report security concerns to the project maintainers through the private channel configured for the target repository. When applying this devkit to a new repository, replace this paragraph with the real reporting address or process.
-
-## Secret Handling
-
-- Keep secrets in environment variables or encrypted files.
-- Never commit real `.env` files, tokens, private keys, credentials, or production data.
-- Use `.env.example` for documented configuration only.
-- Use `.sops.yaml.example` as a starting point when a repository needs encrypted files.
-
-## Dependency Policy
-
-This devkit uses dependency cooldowns and locked installs:
-
-- Bun: `minimumReleaseAge = 604800`.
-- uv: `exclude-newer = "P7D"` when a Python workspace is present and uv is
-  `0.9.17` or newer.
-- Renovate: `minimumReleaseAge = "7 days"`.
-- CI should use frozen or locked installs.
-
-## GitHub Actions
-
-Workflows should use least-privilege permissions, pinned action SHAs, `persist-credentials: false` where practical, and `harden-runner` in audit or block mode.
-
-## Agent Notes
-
-- Do not leave the placeholder reporting channel in a real repository.
-- Prefer GitHub native secret scanning and push protection where available.
-- Add `extras/github/gitleaks.yml.example` only when maintainers want CI secret
-  scanning and can triage findings.
-- Add `extras/github/dependency-review.yml.example` only when dependency graph
-  reporting is desired and enabled.
-- Check `uv --no-config --version` before adding relative uv cooldowns to a
-  downstream repo. Ask before upgrading uv; do not leave old uv clients with
-  unparseable `P7D` or `7 days` config.
+Release identity depends on signing keys. Keep keystores and
+`keystore.properties` out of git and logs. Beta credentials must remain separate
+from the `Prod` environment. If a credential leaks, notify the maintainer
+privately: removing it from history alone does not revoke it. Signing-key loss
+can prevent in-place updates; do not rotate keys casually. See [secrets](docs/secrets.md).

@@ -1,5 +1,12 @@
 # 508 Devkit Manifest
 
+**This is a record of the 508.dev devkit this repo was generated from, not an
+inventory of this repo.** Drums is a native Android app. The non-Android stacks
+and Docker examples below were removed during M0; the Android convention pack
+was applied and then removed. Keep this historical checklist for future devkit
+adoption, not as a list of files that should still exist. Current architecture
+and scope live in `DECISIONS.md` and `docs/roadmap.md`.
+
 This manifest is the agent-facing inventory for template selection. Use it to
 walk the repo before copying or deleting files.
 

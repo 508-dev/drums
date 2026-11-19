@@ -1,0 +1,9 @@
+Drums is an offline Android app for practicing snare rudiments.
+
+This early development build shows a placeholder screen only. Lessons,
+animated notation, synchronized drum playback, tempo controls and a practice
+log are planned for v0.1. Microphone hit detection comes in a later release.
+
+The app is free software under GPL-3.0-only, with no ads, analytics or
+proprietary SDKs. The skeleton requests no runtime permissions. The app name and
+application ID are provisional until the first public release.
