@@ -102,4 +102,14 @@ build (`assembleBeta`).
 
 ### Visual lock and offset
 
-Not yet judged.
+On 2026-11-19 the maintainer judged it by eye and ear on the Sony with
+**wired headphones**. **Locked:** the flash lands exactly with the click, at
+a **visual offset of 0 ms**.
+
+The loudspeaker and Bluetooth weren't checked. The 0 ms result is for wired
+headphones; other outputs report their own latency, and Bluetooth headsets
+may need a non-zero offset (DECISIONS.md, "One Audio Clock").
+
+The maintainer also heard a very loud buzz starting about a second in, which
+is when the 32nd-note snare stream begins after the count-in. It's being
+investigated separately from this measurement.
