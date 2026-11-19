@@ -176,6 +176,35 @@ SoundPool and ExoPlayer cannot schedule to the sample, so neither is used. The
 engine sits behind an `AudioEngine` interface. Oboe (C++) replaces it only if
 M1's measurements on the reference device, a Sony Xperia 10 VII, fail.
 
+### The Mixer Pulls Events, One Block At A Time
+
+Nothing is queued in the engine. Before rendering each block (one device
+burst), the mixer thread asks an `EventSource` for the events that start inside
+that block, then starts each one on its exact frame. The source, the transport
+from M1 on, computes those events from the pattern and the current tempo.
+
+A push queue was rejected: events queued ahead would have to be found and
+cancelled whenever the tempo slider moves, the loop changes or the player
+stops. Pulling makes a tempo change take effect within one output buffer with
+nothing to undo. The cost is that the source runs on the mixer thread and must
+not allocate or block, the same rule the mixer follows. An event reported for
+an earlier block is played at the block start with its attack intact and
+counted as late; one reported beyond the block is dropped and counted.
+
+### Output Buffer: 40 ms, Plus A Burst Per Underrun
+
+The mixer writes one device burst at a time with blocking writes, so it runs
+one effective buffer ahead of the speaker. That buffer starts at 40 ms (at least
+four bursts) and grows by one burst after every underrun, up to 200 ms. 40 ms
+covers a garbage-collection pause or a late wake-up with room to spare, and the
+added latency is invisible because the visuals follow the audio clock. The
+number is a starting point; M1's measurements on the Sony (`docs/timing.md`)
+confirm or replace it.
+
+Frame numbers stay exact across an underrun: the output stream's frame position
+counts frames played, so frame N of what we wrote is still frame N on the
+audio clock, only later in wall time.
+
 ### Our Own Notation Renderer, With Bravura
 
 Both views are drawn on a Compose `Canvas` using Bravura, the SMuFL reference

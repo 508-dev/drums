@@ -44,8 +44,10 @@ production. Without beta secrets, beta uses the standard Android debug key.
 
 The M0 JVM test is a trivial wiring smoke test. Launch the placeholder on a
 device to check UI/insets/rotation; compilation alone does not verify these.
-There is no audio yet. M1 must measure audio/visual timing on the Sony Xperia
-10 VII; unit tests cannot prove those timing goals. Instrumented tests wait
+The audio mixer's frame placement, mixing and allocation-free rendering are
+unit-tested on the JVM (`app/src/test/.../audio/`); the `AudioTrack` output
+itself is not. M1 must measure audio/visual timing on the Sony Xperia 10 VII;
+unit tests cannot prove those timing goals. Instrumented tests wait
 until the relevant device-dependent behavior exists.
 
 ## Local state
