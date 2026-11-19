@@ -10,6 +10,7 @@ import dev.co508.drums.ui.falling.FallingNotesGeometry
 import dev.co508.drums.ui.falling.FallingNotesLayout
 import dev.co508.drums.ui.falling.LIT_QUARTERS
 import dev.co508.drums.ui.falling.Lane
+import dev.co508.drums.ui.falling.graceOffset
 import dev.co508.drums.ui.falling.litAmount
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -144,5 +145,57 @@ class FallingNotesLayoutTest {
             )
         assertEquals(Lane.MIDDLE, l.notes.single().lane)
         assertTrue(l.hasMiddleLane)
+    }
+
+    @Test
+    fun graceNotesKnowTheGapToTheirLaneNeighbour() {
+        // Flam accent: beat 2's grace (r, R lane, at 1.0) follows beat 1's last tap (R, at 2/3).
+        val grace = layout("flam-accent").notes.first { it.graceLead > 0 && it.position == 1.0 }
+        assertEquals(Lane.RIGHT, grace.lane)
+        assertEquals(1.0 / 3, grace.laneGapQuarters, 1e-9)
+        assertEquals(1, grace.graceCount)
+        // The first grace wraps round the loop to the last note in its lane.
+        val first = layout("flam-accent").notes.first { it.graceLead > 0 }
+        assertEquals(1.0 / 3, first.laneGapQuarters, 1e-9)
+        // A drag's two graces share one main note.
+        assertTrue(layout("drag").notes.filter { it.graceLead > 0 }.all { it.graceCount == 2 })
+    }
+
+    @Test
+    fun graceNotesSitCloserToTheirMainNoteThanToTheirLaneNeighbour() {
+        // The Sony: xxhdpi (3 px per dp), lanes 120 dp wide, staff space a fifth of a lane.
+        val staffSpace = 360f * 0.2f
+        val maxStep = staffSpace * 0.7f
+        for (zoomDp in listOf(48f, 110f, 240f)) {
+            val pixelsPerQuarter = zoomDp * 3
+            for (id in listOf("flam", "flam-accent", "drag")) {
+                for (g in layout(id).notes.filter { it.graceLead > 0 }) {
+                    val offset = graceOffset(g.graceLead, g.graceCount, g.laneGapQuarters, pixelsPerQuarter, maxStep)
+                    val gap = (g.laneGapQuarters * pixelsPerQuarter).toFloat()
+                    assertTrue("$id at $zoomDp dp: grace offset $offset vs gap $gap", offset < gap / 2)
+                    // Clear of the neighbour whenever the neighbour is clear of the main note.
+                    val halfHeads = staffSpace * (0.5f + 0.3f)
+                    if (gap >
+                        staffSpace
+                    ) {
+                        assertTrue(
+                            "$id at $zoomDp dp: grace touches its neighbour",
+                            gap - offset > halfHeads,
+                        )
+                    }
+                    assertTrue(offset <= g.graceLead * maxStep)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun graceOffsetsUseTheFullStepWhenThereIsRoom() {
+        assertEquals(50.4f, graceOffset(1, 1, laneGapQuarters = 2.0, pixelsPerQuarter = 330f, maxStep = 50.4f), 1e-4f)
+        // Triplet spacing at the default zoom: a third of a quarter is 110 px; 30% of that.
+        assertEquals(33f, graceOffset(1, 1, laneGapQuarters = 1.0 / 3, pixelsPerQuarter = 330f, maxStep = 50.4f), 1e-3f)
+        // Two graces share the room.
+        assertEquals(33f, graceOffset(2, 2, laneGapQuarters = 1.0 / 3, pixelsPerQuarter = 330f, maxStep = 50.4f), 1e-3f)
+        assertEquals(0f, graceOffset(0, 1, 1.0, 330f, 50.4f), 0f)
     }
 }

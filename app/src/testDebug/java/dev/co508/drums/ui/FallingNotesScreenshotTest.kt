@@ -75,6 +75,10 @@ class FallingNotesScreenshotTest {
     @Test
     fun drag() = capture("drag", 2.0, "drag-portrait")
 
+    /** Flams: each grace note sits just under its main note in the other lane. */
+    @Test
+    fun flam() = capture("flam", 1.0, "flam-portrait")
+
     /** The count-in: the grid falls with no notes yet. */
     @Test
     fun countIn() = capture("single-stroke-roll", -2.0, "count-in-portrait")

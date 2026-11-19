@@ -198,8 +198,16 @@ private class NotePainter(
         val grace = note.graceLead > 0
         val scale = if (grace) GRACE_SCALE else 1f
         // A grace note sounds just before its main note, so it sits just below it
-        // (earlier, nearer the hit line), a fixed gap per grace whatever the zoom.
-        val y = geometry.y(position, now) + note.graceLead * staffSpace * GRACE_STEP
+        // (earlier, nearer the hit line), and always nearer it than its lane neighbour.
+        val y =
+            geometry.y(position, now) +
+                graceOffset(
+                    note.graceLead,
+                    note.graceCount,
+                    note.laneGapQuarters,
+                    geometry.pixelsPerQuarter,
+                    staffSpace * GRACE_STEP,
+                )
         // Lit and passed are judged by where the note is drawn, so a grace note lights
         // as it crosses the line, just before its main note.
         val quartersPast = (y - geometry.hitLineY) / geometry.pixelsPerQuarter
@@ -277,6 +285,6 @@ private class NotePainter(
 
     private companion object {
         const val GRACE_SCALE = 0.6f
-        const val GRACE_STEP = 0.85f
+        const val GRACE_STEP = 0.7f
     }
 }
