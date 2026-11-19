@@ -318,8 +318,19 @@ same time position. The importer also accepts sticking written as lyrics or
 fingering. Built-in lessons must carry sticking on every note.
 
 Writing grace-note hands as lowercase letters in the main note's word ("lR",
-"llR") is our own convention, not observed MuseScore behavior. It must be
-checked against real MuseScore exports before `docs/musicxml-style.md` is final.
+"llR") is our own convention, not MuseScore's. Real exports from MuseScore
+4.7.5 (M2) show why it's needed:
+
+- A Sticking belongs to a time position, never to a grace note. MuseScore
+  drops one written inside a grace chord.
+- A grace note's own sticking can only be a second Sticking at the main
+  note's position. It exports as a second loose word, in entry order, and is
+  drawn on top of the first.
+- A combined word exports intact, before the grace notes, and reads cleanly
+  under the note.
+
+The details, and the importer's rules for teachers' files that stack
+stickings anyway, are in `docs/musicxml-style.md`.
 
 ### Grace Notes Sound Just Before The Beat
 

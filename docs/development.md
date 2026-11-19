@@ -56,3 +56,11 @@ until the relevant device-dependent behavior exists.
 copied to sibling worktrees. Both are ignored; never copy another app's signing
 key. Agents must never generate signing keys or secrets. `.context/` is ignored
 scratch only; move durable findings into tracked docs, not raw logs.
+
+## MusicXML reference fixtures
+
+`app/src/test/resources/musicxml/musescore-4.7.5/` holds MuseScore scores and
+their exports, which back `docs/musicxml-style.md`. With MuseScore 4 installed
+(`mscore`, or set `MSCORE`), `./scripts/export-musescore-fixtures.sh`
+re-exports them headlessly. Then `./scripts/test.sh` checks that the style
+guide's facts still hold. CI doesn't have MuseScore and only runs the checks.
