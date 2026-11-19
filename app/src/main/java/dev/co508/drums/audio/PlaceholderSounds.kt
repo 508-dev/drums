@@ -63,9 +63,12 @@ object PlaceholderSounds {
     }
 
     /**
-     * A sustained buzz (multiple-bounce) roll: high-passed noise pulsing at the
-     * rate of stick bounces. It is long, and the mixer cuts it to each roll's
-     * length ([dev.co508.drums.audio.EventSink.playFor]).
+     * A sustained buzz (multiple-bounce) roll. Hands alternate, each coming
+     * in as the other's bounces run out. Each stroke is 5 to 8 bounces that come faster and quieter as
+     * the stick settles, with seeded random spacing and levels, so the roll is
+     * dense and irregular, not a ticking pulse. It is long, and the mixer cuts
+     * it to each roll's length ([dev.co508.drums.audio.EventSink.playFor]). A
+     * placeholder until the sampled buzz arrives (#19).
      */
     fun buzz(
         sampleRate: Int,
@@ -73,23 +76,50 @@ object PlaceholderSounds {
     ): Sound {
         val random = Random(seed)
         val samples = FloatArray(frames(sampleRate, BUZZ_SECONDS))
+        var strokeStart = 0.0
+        var rightHand = true
+        while (strokeStart < BUZZ_SECONDS) {
+            // The hands differ a little in strength.
+            var level = (if (rightHand) 1.0 else 0.88) * random.nextDouble(0.85, 1.0)
+            var t = strokeStart
+            var interval = random.nextDouble(0.016, 0.022)
+            repeat(5 + random.nextInt(4)) {
+                addBounce(samples, sampleRate, (t * sampleRate).toInt(), level, random)
+                t += interval * random.nextDouble(0.8, 1.2)
+                interval *= random.nextDouble(0.8, 0.92)
+                level *= random.nextDouble(0.7, 0.85)
+            }
+            // The other hand comes in as this stroke's bounces run out, so the roll has no gaps.
+            strokeStart = t + random.nextDouble(-0.006, 0.002)
+            rightHand = !rightHand
+        }
+        finish(samples, sampleRate, 0.5f)
+        return Sound("buzz", samples)
+    }
+
+    /** One bounce: a short burst of high-passed noise (the wires), decaying in a few milliseconds. */
+    private fun addBounce(
+        samples: FloatArray,
+        sampleRate: Int,
+        start: Int,
+        level: Double,
+        random: Random,
+    ) {
         val rc = 1.0 / (2 * PI * SNARE_NOISE_HIGH_PASS_HZ)
         val alpha = rc / (rc + 1.0 / sampleRate)
         var previousIn = 0.0
         var previousOut = 0.0
-        for (i in samples.indices) {
-            val t = i.toDouble() / sampleRate
+        val length = frames(sampleRate, BOUNCE_SECONDS)
+        for (j in 0 until length) {
+            val i = start + j
+            if (i >= samples.size) return
+            val t = j.toDouble() / sampleRate
             val white = random.nextDouble(-1.0, 1.0)
             val highPassed = alpha * (previousOut + white - previousIn)
             previousIn = white
             previousOut = highPassed
-            // Each bounce is a quick swell and decay of the wires.
-            val bounce = (t * BUZZ_BOUNCE_HZ) % 1.0
-            val envelope = 0.45 + 0.55 * exp(-bounce * 6)
-            samples[i] = (highPassed * envelope * attack(t)).toFloat()
+            samples[i] += (level * highPassed * exp(-t / BOUNCE_DECAY_SECONDS) * attack(t)).toFloat()
         }
-        finish(samples, sampleRate, 0.5f)
-        return Sound("buzz", samples)
     }
 
     private fun frames(
@@ -127,7 +157,8 @@ object PlaceholderSounds {
     private const val CLICK_DECAY_SECONDS = 0.006
     private const val SNARE_SECONDS = 0.25
     private const val BUZZ_SECONDS = 8.0
-    private const val BUZZ_BOUNCE_HZ = 28.0
+    private const val BOUNCE_SECONDS = 0.03
+    private const val BOUNCE_DECAY_SECONDS = 0.005
     private const val SNARE_NOISE_HIGH_PASS_HZ = 1_000.0
     private const val SNARE_NOISE_DECAY_SECONDS = 0.055
     private const val SNARE_TONE_HZ = 185.0

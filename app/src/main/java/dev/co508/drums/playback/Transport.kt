@@ -322,8 +322,8 @@ class Transport(
         const val MIN_BPM = 1.0
         const val MAX_BPM = 1_000.0
 
-        /** Until it's tuned by ear on the reference device (DECISIONS.md, "Grace Notes Sound Just Before The Beat"). */
-        const val DEFAULT_GRACE_GAP_MILLIS = 30.0
+        /** Chosen by ear on the reference device (DECISIONS.md, "Grace Notes Sound Just Before The Beat"). */
+        const val DEFAULT_GRACE_GAP_MILLIS = 12.0
         const val MAX_GRACE_GAP_MILLIS = 150.0
         private const val FRAME_EPSILON = 1e-6
         private val NO_TEMPO = Double.NaN.toRawBits()
