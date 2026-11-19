@@ -102,6 +102,7 @@ android {
     buildFeatures {
         compose = true
     }
+    sourceSets.getByName("main").assets.srcDir(rootProject.file("licenses"))
     testOptions {
         // Robolectric screenshot tests need the app's resources (fonts, strings).
         unitTests.isIncludeAndroidResources = true

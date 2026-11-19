@@ -57,6 +57,9 @@ class PracticeSettingsStoreTest {
                 for (tempo in 60..160) store.saveLesson(lesson, LessonPreferences(tempo = tempo))
                 store.saveView(PracticeView.FALLING_NOTES)
                 store.saveZoom(320f)
+                store.saveDefaults(
+                    AppDefaults(click = false, clickVolume = 0.3f, countIn = false, visualOffsetMillis = 125),
+                )
                 store.toggleFavorite(lesson)
                 // A stale practice snapshot must not overwrite a library favorite.
                 store.saveLesson(lesson, LessonPreferences(tempo = 160))
@@ -80,6 +83,9 @@ class PracticeSettingsStoreTest {
                 assertEquals(160, reopened.lesson(lesson).tempo)
                 assertEquals(PracticeView.FALLING_NOTES, reopened.practiceView)
                 assertEquals(320f, reopened.zoomPixelsPerBeat)
+                assertEquals(125, reopened.defaults.visualOffsetMillis)
+                assertEquals(false, reopened.defaults.countIn)
+                assertEquals(0.3f, reopened.defaults.clickVolume)
                 assertEquals(true, reopened.isFavorite(lesson))
             } finally {
                 secondJob.cancelAndJoin()

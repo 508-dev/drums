@@ -85,6 +85,7 @@ fun PracticeScreen(
         return
     }
     var settings by remember(lesson.preferenceKey) { mutableStateOf(loaded.lesson(lesson)) }
+    LaunchedEffect(session, loaded.defaults) { loaded.defaults.applyTo(session.clock) }
     var practiceView by remember { mutableStateOf(loaded.practiceView) }
     var pixelsPerBeat by remember { mutableStateOf(loaded.zoomPixelsPerBeat) }
     var playing by remember { mutableStateOf(session.isPlaying) }

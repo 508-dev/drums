@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import dev.co508.drums.lesson.DirectoryPackSource
@@ -92,8 +93,15 @@ class LibraryScreenshotTest {
         compose.onNodeWithContentDescription("Settings").performClick()
         compose
             .onNodeWithText(
-                "Sound defaults, count-in and sound/visual offset settings are coming next.",
+                "Default practice sounds",
             ).assertIsDisplayed()
+        compose.onNodeWithText("About").performScrollTo().performClick()
+        compose.onNodeWithText("Version unknown").assertIsDisplayed()
+        compose.onNodeWithText("Licenses and credits").performClick()
+        compose.onNodeWithText("Bravura 1.482").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back").performClick()
+        compose.onNodeWithText("Version unknown").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Quarter Notes").performClick()
         compose.onNodeWithText("Practice: Quarter Notes").assertIsDisplayed()

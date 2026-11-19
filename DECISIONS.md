@@ -542,6 +542,16 @@ The heard tempo and loop/trainer progress stay visible above the notation;
 trainer steps get a brief highlight. A loop means the whole expanded lesson,
 including written repeats, not one written bar.
 
+Global sound/volume and count-in defaults seed only lessons with no saved
+playback preferences; changing defaults never overwrites deliberate per-lesson
+choices. The sound/visual offset is always global (−500 to +500 ms), applied to
+the shared AudioClock when opening practice. Positive delays the visuals,
+negative advances them; audio scheduling itself never changes.
+
+About and project-grouped credits are available from Settings. License texts
+are bundled from `licenses/` and readable offline; credits are maintained by
+hand alongside `docs/third-party.md`, with no license-discovery SDK.
+
 ### Testing
 
 - JVM unit tests for timing math, MusicXML import and layout math.
