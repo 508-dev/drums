@@ -9,8 +9,7 @@ name: Beta
 
 on:
   push:
-    # This rename PR must not create a beta release or tag.
-    branches-ignore: [main, 'release-please--**', gh-pages, 'chore/rename-ratamatap']
+    branches-ignore: [main, 'release-please--**', gh-pages]
   delete:
   workflow_dispatch:
 
