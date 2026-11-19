@@ -1,8 +1,10 @@
 package dev.co508.drums.audio
 
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
+import kotlin.math.tanh
 
 /**
  * Renders interleaved stereo float blocks from events pulled from an
@@ -58,7 +60,7 @@ class Mixer(
     /**
      * Renders the next [frames] frames into [out] as interleaved stereo
      * (L, R, L, R…), after asking [source] for the events starting in them.
-     * Samples are clamped to [-1, 1].
+     * Samples stay within [-1, 1]: see [softClip].
      */
     fun render(
         out: FloatArray,
@@ -87,13 +89,7 @@ class Mixer(
         if (active > peakVoices) peakVoices = active
 
         for (i in 0 until frames * 2) {
-            val s = out[i] * masterGain
-            out[i] =
-                when {
-                    s > 1f -> 1f
-                    s < -1f -> -1f
-                    else -> s
-                }
+            out[i] = softClip(out[i] * masterGain)
         }
         framesRendered = from + frames
     }
@@ -170,6 +166,23 @@ class Mixer(
 
     companion object {
         const val DEFAULT_MAX_VOICES = 64
+
+        /** Below this level the mix passes unchanged. */
+        const val SOFT_CLIP_KNEE = 0.9f
+
+        /**
+         * Keeps a sample within [-1, 1] without a hard edge. It is linear up to
+         * [SOFT_CLIP_KNEE], then bends smoothly (tanh, with matching slope at the
+         * knee) towards full scale, so loud overlapping voices are rounded off
+         * rather than squared off. See DECISIONS.md, "Soft Clipping On The Mix".
+         */
+        fun softClip(x: Float): Float {
+            val magnitude = abs(x)
+            if (magnitude <= SOFT_CLIP_KNEE) return x
+            val room = 1f - SOFT_CLIP_KNEE
+            val bent = SOFT_CLIP_KNEE + room * tanh((magnitude - SOFT_CLIP_KNEE) / room)
+            return if (x < 0f) -bent else bent
+        }
     }
 }
 
