@@ -55,7 +55,10 @@ from standard notation (Bravura glyphs): noteheads, accent `>`, ghost notes in
 parentheses, rimshot notehead.
 
 - **Grace notes:** a flam's grace note is a small notehead in the other lane,
-  just *below* its main note, a fixed gap per grace note whatever the zoom.
+  just *below* its main note. Its offset is at most 0.7 staff spaces per
+  grace note. It never uses more than 30% of the gap back to the previous
+  note in its own lane, so in dense music (flam accents' triplets) it closes
+  up beside its main note instead of looking like part of its neighbour.
   Time runs up the screen, so below is earlier: the grace note crosses the
   hit line, and lights up, just before its main note, as it sounds. (The
   first draft of this decision said "just above", which would make a grace

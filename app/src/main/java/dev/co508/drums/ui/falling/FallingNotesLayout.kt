@@ -19,6 +19,14 @@ data class FallingNote(
     val graceLead: Int = 0,
     /** For a buzz roll: its length in quarter notes, drawn as a tail. */
     val buzzQuarters: Double = 0.0,
+    /** For a grace note: how many grace notes lead into its main note (1 for a flam, 2 for a drag). */
+    val graceCount: Int = 0,
+    /**
+     * For a grace note: the time back to the previous note in its own lane, in
+     * quarter notes (wrapping around the loop). Its offset stays well inside
+     * this, so it reads as part of its main note, not of that neighbour.
+     */
+    val laneGapQuarters: Double = Double.POSITIVE_INFINITY,
 )
 
 /** A grid line: a beat, or a bar line ([isBar]). */
@@ -93,16 +101,57 @@ class FallingNotesLayout(
                     k++
                 }
             }
+            val length = timeline.length.toDouble()
             return FallingNotesLayout(
-                lengthQuarters = timeline.length.toDouble(),
+                lengthQuarters = length,
                 beatQuarters = timeline.timeSignature.beatQuarters.toDouble(),
-                notes = notes.sortedBy { it.position },
+                notes = withGraceSpacing(notes.sortedBy { it.position }, length),
                 grid = grid,
                 counts = counts,
             )
         }
     }
 }
+
+/** Fills in each grace note's [FallingNote.graceCount] and [FallingNote.laneGapQuarters]. */
+private fun withGraceSpacing(
+    notes: List<FallingNote>,
+    length: Double,
+): List<FallingNote> {
+    val positionsByLane = notes.groupBy { it.lane }.mapValues { (_, n) -> n.map { it.position }.distinct().sorted() }
+    return notes.map { note ->
+        if (note.graceLead == 0) return@map note
+        val count = notes.filter { it.position == note.position && it.graceLead > 0 }.maxOf { it.graceLead }
+        val lane = positionsByLane.getValue(note.lane)
+        val previous = lane.lastOrNull { it < note.position } ?: (lane.last() - length)
+        val gap = if (previous < note.position) note.position - previous else length
+        note.copy(graceCount = count, laneGapQuarters = gap)
+    }
+}
+
+/**
+ * How far below its main note a grace note is drawn, in pixels: [lead] steps
+ * of at most [maxStep] each, shrunk so that the farthest grace stays within
+ [GRACE_GAP_SHARE] of the gap to the previous note in its lane. A grace note
+ * is then always closer to its main note than to that neighbour, and in dense
+ * music it closes up toward its main note rather than collide with the
+ * neighbour.
+ */
+fun graceOffset(
+    lead: Int,
+    count: Int,
+    laneGapQuarters: Double,
+    pixelsPerQuarter: Float,
+    maxStep: Float,
+): Float {
+    if (lead <= 0) return 0f
+    val room = (laneGapQuarters * pixelsPerQuarter * GRACE_GAP_SHARE).toFloat()
+    val step = minOf(maxStep, room / count.coerceAtLeast(1))
+    return lead * step
+}
+
+/** The share of the gap to a grace note's lane neighbour its offset may use: well under half, so it stays with its main note and clear of the neighbour. */
+const val GRACE_GAP_SHARE = 0.3
 
 /**
  * Where things go on screen. Time runs up the screen: the note being played
