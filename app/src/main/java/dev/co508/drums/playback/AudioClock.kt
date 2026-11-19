@@ -67,6 +67,12 @@ class AudioClock(
     fun reset() {
         hasAnchor = false
         refreshed = false
+        resetStats()
+    }
+
+    /** Starts the jitter statistics afresh, keeping the anchor. */
+    @Synchronized
+    fun resetStats() {
         updates = 0
         lastErrorMillis = 0.0
         maxAbsErrorMillis = 0.0
