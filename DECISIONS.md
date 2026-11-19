@@ -73,6 +73,42 @@ Rudiments are about sticking, and lanes make sticking visible without reading
 letters. Notes with no sticking (possible in imported files, M6) fall in a
 neutral middle lane, with a banner saying the file has no sticking.
 
+### The Sheet View Engraves What's Written
+
+The sheet view draws the lesson as written, not as played. Repeats keep
+their repeat barlines, and the playhead returns to the start of the section
+on each pass. The transport's position is mapped back to a written measure
+through the unrolled timeline. Engraving follows MuseScore's output for a
+one-line snare part (compare `lessons/builtin/renders/` with the sheet
+screenshots):
+
+- **Stems and beams:** stems up and beams flat. Notes are beamed within each
+  beat (a dotted quarter in compound time), and rests break beams.
+- **Below the line:** accents, then the sticking word (`lR`, `llR`), as in
+  MuseScore.
+- **Grace notes:** a slashed grace note uses SMuFL's acciaccatura glyph; other
+  grace notes are small beamed noteheads.
+- **Tuplets:** a beamed tuplet shows only its number; an unbeamed one also
+  gets a bracket.
+
+Deliberate differences from MuseScore:
+
+- **Spacing is proportional within each line,** so the playhead sweeps at a
+  constant speed ("Linear Time In Both Views"). There is a minimum gap
+  between notes so noteheads and stickings never collide.
+- **Line length:** as many bars per line as fit at that spacing, stretched
+  to the width.
+- **Omitted:** there is no title, tempo mark or instrument name; the practice
+  screen shows those.
+- **Sticking letters** are a bold sans-serif. They are grey, and turn the
+  hand's colour while lit.
+
+A note and its sticking light up from when the playhead reaches it until the
+next note starts, at most a third of a beat.
+
+The last view used is remembered in a SharedPreferences value until DataStore
+arrives with the Settings screen (#18).
+
 ### Linear Time In Both Views
 
 Distance on screen is proportional to musical time. In the falling-notes view

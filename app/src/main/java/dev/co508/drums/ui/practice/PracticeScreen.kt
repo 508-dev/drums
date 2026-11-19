@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -34,6 +35,7 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import dev.co508.drums.lesson.Expansion
@@ -45,6 +47,7 @@ import dev.co508.drums.playback.PlaySettings
 import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.ui.falling.FallingNotesLayout
 import dev.co508.drums.ui.falling.FallingNotesView
+import dev.co508.drums.ui.sheet.SheetView
 import kotlin.math.roundToInt
 
 /**
@@ -67,6 +70,9 @@ fun PracticeScreen(
     var beatsPerMinute by rememberSaveable(lesson.id) { mutableIntStateOf(lesson.manifest.tempo.start) }
     var pixelsPerBeat by rememberSaveable { mutableFloatStateOf(DEFAULT_PIXELS_PER_BEAT) }
     var showCounts by rememberSaveable { mutableStateOf(true) }
+    val context = LocalContext.current
+    val viewPreference = remember { PracticeViewPreference(context) }
+    var practiceView by remember { mutableStateOf(viewPreference.view) }
     var playing by remember { mutableStateOf(session.isPlaying) }
     var message by remember { mutableStateOf<String?>(null) }
     var frameNanos by remember { mutableLongStateOf(0L) }
@@ -118,14 +124,18 @@ fun PracticeScreen(
     }
 
     val notes: @Composable (Modifier) -> Unit = { modifier ->
-        FallingNotesView(
-            layout,
-            now,
-            modifier,
-            pixelsPerBeat = pixelsPerBeat.dp,
-            showCounts = showCounts,
-            lightUp = playing,
-        )
+        when (practiceView) {
+            PracticeView.FALLING_NOTES ->
+                FallingNotesView(
+                    layout,
+                    now,
+                    modifier,
+                    pixelsPerBeat = pixelsPerBeat.dp,
+                    showCounts = showCounts,
+                    lightUp = playing,
+                )
+            PracticeView.SHEET -> SheetView(lesson.notation, timeline, now, modifier, showPlayhead = playing)
+        }
     }
     val controls: @Composable () -> Unit = {
         Controls(
@@ -138,6 +148,7 @@ fun PracticeScreen(
             onZoom = { pixelsPerBeat = it },
             showCounts = showCounts,
             onShowCounts = { showCounts = it },
+            fallingNotes = practiceView == PracticeView.FALLING_NOTES,
             message = message,
         )
     }
@@ -148,7 +159,18 @@ fun PracticeScreen(
                 stop()
                 onBack()
             }) { Text("Back") }
-            Text(lesson.manifest.title, style = MaterialTheme.typography.titleLarge)
+            Text(lesson.manifest.title, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
+            for ((option, label) in listOf(PracticeView.FALLING_NOTES to "Falling", PracticeView.SHEET to "Sheet")) {
+                FilterChip(
+                    selected = practiceView == option,
+                    onClick = {
+                        practiceView = option
+                        viewPreference.view = option
+                    },
+                    label = { Text(label) },
+                    modifier = Modifier.padding(end = 6.dp),
+                )
+            }
         }
         if (LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE) {
             // Landscape: the lanes stay vertical, with the controls beside them.
@@ -180,6 +202,7 @@ private fun Controls(
     onZoom: (Float) -> Unit,
     showCounts: Boolean,
     onShowCounts: (Boolean) -> Unit,
+    fallingNotes: Boolean,
     message: String?,
 ) {
     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -197,6 +220,8 @@ private fun Controls(
         onValueChange = { onTempo(it.roundToInt()) },
         valueRange = PackLoader.MIN_BPM.toFloat()..PackLoader.MAX_BPM.toFloat(),
     )
+    // Zoom and counting belong to the falling-notes view.
+    if (!fallingNotes) return
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Zoom")
         Slider(value = pixelsPerBeat, onValueChange = onZoom, valueRange = 48f..240f, modifier = Modifier.weight(1f))
