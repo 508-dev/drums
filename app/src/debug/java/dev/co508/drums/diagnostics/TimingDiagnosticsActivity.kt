@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -48,10 +49,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.co508.drums.DrumsApp
 import dev.co508.drums.audio.PlaceholderSounds
-import dev.co508.drums.audio.Sound
-import dev.co508.drums.playback.Meter
+import dev.co508.drums.lesson.AssetPackSource
+import dev.co508.drums.lesson.Expansion
+import dev.co508.drums.lesson.Lesson
+import dev.co508.drums.lesson.PackLoader
+import dev.co508.drums.lesson.PackResult
+import dev.co508.drums.musicxml.MusicXmlImporter
+import dev.co508.drums.playback.DrumKit
+import dev.co508.drums.playback.LessonPattern
 import dev.co508.drums.playback.PlaySettings
 import dev.co508.drums.playback.PlaybackSession
+import dev.co508.drums.playback.Transport
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.floor
@@ -77,7 +85,11 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        val controller = DiagnosticsController(session, PlaceholderSounds.snare(session.engine.sampleRate))
+        val rate = session.engine.sampleRate
+        val (lessons, packErrors) = loadLessons()
+        val kit = DrumKit(PlaceholderSounds.snare(rate), PlaceholderSounds.buzz(rate))
+        val controller = DiagnosticsController(session, kit, lessons)
+        if (packErrors.isNotEmpty()) controller.message = packErrors.joinToString("\n")
         session.onInterrupted = {
             controller.onInterrupted()
         }
@@ -94,6 +106,21 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         }
     }
 
+    /** The built-in pack, plus the debug-only pack of ornament tests (src/debug/assets). */
+    private fun loadLessons(): Pair<List<Lesson>, List<String>> {
+        val loader = PackLoader(MusicXmlImporter())
+        val lessons = mutableListOf<Lesson>()
+        val errors = mutableListOf<String>()
+        for (folder in listOf(PackLoader.BUILT_IN_FOLDER, DEBUG_PACK_FOLDER)) {
+            when (val result = loader.load(AssetPackSource(assets, folder), strict = true)) {
+                is PackResult.Success -> lessons += result.pack.lessons
+                is PackResult.Failure -> errors += result.errors.map { "$folder: $it" }
+            }
+        }
+        errors.forEach { Log.e(TAG, it) }
+        return lessons to errors
+    }
+
     override fun onStart() {
         super.onStart()
         session.open()
@@ -108,6 +135,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         const val EXTRA_EXIT_TEST = "exitTest"
         const val EXTRA_DURATION_SECONDS = "durationSeconds"
         const val DEFAULT_EXIT_TEST_SECONDS = 600
+        const val DEBUG_PACK_FOLDER = "packs/debug"
     }
 }
 
@@ -117,8 +145,14 @@ private const val FLASH_MILLIS = 60.0
 
 private class DiagnosticsController(
     val session: PlaybackSession,
-    private val snare: Sound,
+    private val kit: DrumKit,
+    val lessons: List<Lesson>,
 ) {
+    /** The lesson to play, or null for the subdivision pattern. */
+    var lesson by mutableStateOf<Lesson?>(null)
+    var leadWithLeft by mutableStateOf(false)
+    var graceGapMillis by mutableFloatStateOf(Transport.DEFAULT_GRACE_GAP_MILLIS.toFloat())
+
     var beatsPerMinute by mutableDoubleStateOf(120.0)
     var notesPerBeat by mutableIntStateOf(1)
     var clickOn by mutableStateOf(true)
@@ -141,7 +175,15 @@ private class DiagnosticsController(
 
     fun play() {
         applyVolumes()
-        val settings = PlaySettings(subdivisionPattern(notesPerBeat, snare), beatsPerMinute, countIn = countIn)
+        transport.graceGapMillis = graceGapMillis.toDouble()
+        val current = lesson
+        val pattern =
+            if (current != null) {
+                LessonPattern.build(Expansion.expand(current.notation, leadWithLeft), kit)
+            } else {
+                subdivisionPattern(notesPerBeat, kit.snare)
+            }
+        val settings = PlaySettings(pattern, beatsPerMinute, countIn = countIn)
         if (!session.play(settings)) {
             message = "Audio focus refused (a call in progress?)"
             return
@@ -169,6 +211,7 @@ private class DiagnosticsController(
     }
 
     fun runExitTest(seconds: Int) {
+        lesson = null
         beatsPerMinute = 300.0
         notesPerBeat = 8
         clickOn = true
@@ -185,7 +228,26 @@ private class DiagnosticsController(
 
     fun changeSubdivision(n: Int) {
         notesPerBeat = n
+        lesson = null
         if (playing) play() // A new pattern restarts from the count-in.
+    }
+
+    fun chooseLesson(chosen: Lesson) {
+        lesson = chosen
+        beatsPerMinute =
+            chosen.manifest.tempo.start
+                .toDouble()
+        if (playing) play()
+    }
+
+    fun changeLeadWithLeft(on: Boolean) {
+        leadWithLeft = on
+        if (playing) play()
+    }
+
+    fun changeGraceGap(millis: Float) {
+        graceGapMillis = millis
+        transport.graceGapMillis = millis.toDouble()
     }
 
     fun applyVolumes() {
@@ -221,7 +283,10 @@ private class DiagnosticsController(
     private fun elapsedSeconds(now: Long) = if (playing) (now - playStartNanos) / 1e9 else 0.0
 
     private fun describeRun() =
-        "bpm=${beatsPerMinute.toInt()} notesPerBeat=$notesPerBeat click=$clickOn snare=$snareOn " +
+        "bpm=${beatsPerMinute.toInt()} ${lesson?.let {
+            "lesson=${it.id} leadWithLeft=$leadWithLeft"
+        } ?: "notesPerBeat=$notesPerBeat"} " +
+            "click=$clickOn snare=$snareOn graceGapMs=${graceGapMillis.roundToInt()} " +
             "device=${Build.MANUFACTURER} ${Build.MODEL} android=${Build.VERSION.RELEASE}"
 
     private fun log(event: String) {
@@ -348,15 +413,14 @@ private fun Metronome(
         val frameNanos = controller.frameNanos // Read in the draw phase: redraws every frame.
         val frame = session.clock.visualFrameAt(frameNanos)
         val position = if (frame.isNaN()) Double.NaN else session.transport.positionAt(frame)
-        val meter =
-            session.transport.settings
-                ?.pattern
-                ?.meter ?: Meter.FOUR_FOUR
+        val pattern = session.transport.settings?.pattern
+        val beatsPerBar = pattern?.countInBeats ?: 4
+        val beatQuarters = pattern?.beatQuarters ?: 1.0
         if (!controller.playing || position.isNaN()) {
-            drawBeats(meter, current = -1, flash = 0f)
+            drawBeats(beatsPerBar, current = -1, flash = 0f)
             return@Canvas
         }
-        val phase = beatPhase(position, meter, session.transport.beatsPerMinuteAt(frame))
+        val phase = beatPhase(position, beatsPerBar, beatQuarters, session.transport.beatsPerMinuteAt(frame))
         val flash =
             if (phase.millisSinceBeat <
                 FLASH_MILLIS
@@ -367,9 +431,9 @@ private fun Metronome(
             }
         val color = if (phase.beatInBar == 0) accentColor else beatColor
         drawRect(color.copy(alpha = 0.85f * flash), size = size.copy(height = size.height * 0.45f))
-        drawBeats(meter, phase.beatInBar, flash)
+        drawBeats(beatsPerBar, phase.beatInBar, flash)
         // The ball reaches an edge on every beat, alternating sides.
-        val beatIndex = floor(position / meter.beatQuarters).toLong()
+        val beatIndex = floor(position / beatQuarters).toLong()
         val x = if (Math.floorMod(beatIndex, 2L) == 0L) phase.fraction else 1 - phase.fraction
         val radius = size.height * 0.08f
         drawCircle(
@@ -381,11 +445,10 @@ private fun Metronome(
 }
 
 private fun DrawScope.drawBeats(
-    meter: Meter,
+    n: Int,
     current: Int,
     flash: Float,
 ) {
-    val n = meter.beatsPerBar
     val radius = minOf(size.width / (n * 3f), size.height * 0.12f)
     for (i in 0 until n) {
         val center = Offset(size.width * (i + 0.5f) / n, size.height * 0.65f)
@@ -424,11 +487,33 @@ private fun Controls(controller: DiagnosticsController) {
         valueRange = DiagnosticsController.MIN_BPM.toFloat()..DiagnosticsController.MAX_BPM.toFloat(),
     )
 
+    if (controller.lessons.isNotEmpty()) {
+        Text("Lesson")
+        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            for (lesson in controller.lessons) {
+                FilterChip(
+                    selected = controller.lesson == lesson,
+                    onClick = { controller.chooseLesson(lesson) },
+                    label = { Text(lesson.manifest.title) },
+                )
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+            LabeledSwitch("Lead with left", controller.leadWithLeft, controller::changeLeadWithLeft)
+        }
+        Text("Grace gap ${controller.graceGapMillis.roundToInt()} ms (flam and drag spacing)")
+        Slider(
+            value = controller.graceGapMillis,
+            onValueChange = { controller.changeGraceGap(it.roundToInt().toFloat()) },
+            valueRange = 0f..80f,
+        )
+    }
+
     Text("Snare notes per beat")
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
         for ((n, label) in listOf(1 to "4th", 2 to "8th", 3 to "trip", 4 to "16th", 6 to "6let", 8 to "32nd")) {
             FilterChip(
-                selected = controller.notesPerBeat == n,
+                selected = controller.lesson == null && controller.notesPerBeat == n,
                 onClick = { controller.changeSubdivision(n) },
                 label = { Text(label) },
             )

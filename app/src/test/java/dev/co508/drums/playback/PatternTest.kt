@@ -11,35 +11,52 @@ class PatternTest {
     private val snare = Sound("snare", floatArrayOf(1f))
 
     @Test
-    fun clicksFallOnEveryBeatWithBarAccents() {
-        val pattern = Pattern(8.0, Meter.FOUR_FOUR, emptyList())
-        assertArrayEquals(DoubleArray(8) { it.toDouble() }, pattern.clickPositions, 0.0)
-        assertEquals(listOf(true, false, false, false, true, false, false, false), pattern.clickAccents.toList())
+    fun steadyClicksFallOnEveryBeatWithBarAccents() {
+        val clicks = Pattern.steadyClicks(8.0, beatsPerBar = 4, beatQuarters = 1.0)
+        assertEquals((0 until 8).map { it.toDouble() }, clicks.map { it.position })
+        assertEquals(listOf(true, false, false, false, true, false, false, false), clicks.map { it.accent })
     }
 
     @Test
-    fun compoundMeterClicksOnDottedQuarters() {
-        val pattern = Pattern(6.0, Meter(2, 1.5), emptyList())
-        assertArrayEquals(doubleArrayOf(0.0, 1.5, 3.0, 4.5), pattern.clickPositions, 0.0)
-        assertEquals(listOf(true, false, true, false), pattern.clickAccents.toList())
+    fun compoundClicksOnDottedQuarters() {
+        val clicks = Pattern.steadyClicks(6.0, beatsPerBar = 2, beatQuarters = 1.5)
+        assertEquals(listOf(0.0, 1.5, 3.0, 4.5), clicks.map { it.position })
+        assertEquals(listOf(true, false, true, false), clicks.map { it.accent })
+        assertEquals(3, Pattern.steadyClicks(2.5, 4, 1.0).size) // A partial last beat still clicks.
     }
 
     @Test
-    fun aPartialLastBeatStillClicks() {
-        assertEquals(3, Pattern(2.5, Meter.FOUR_FOUR, emptyList()).clickPositions.size)
-    }
-
-    @Test
-    fun eventsAreSortedByPosition() {
+    fun eventsAreSortedAndTheirLeadLevelsTracked() {
         val pattern =
-            Pattern(1.0, Meter.FOUR_FOUR, listOf(PatternEvent(0.5, snare), PatternEvent(0.0, snare, gain = 0.2f)))
+            Pattern(
+                1.0,
+                1.0,
+                4,
+                listOf(PatternEvent(0.5, snare), PatternEvent(0.0, snare, gain = 0.2f, leadLevel = 2)),
+                emptyList(),
+            )
         assertArrayEquals(doubleArrayOf(0.0, 0.5), pattern.eventPositions, 0.0)
         assertEquals(0.2f, pattern.eventGains[0])
+        assertEquals(2, pattern.maxLeadLevel)
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun eventsMustLieInsideThePattern() {
-        Pattern(1.0, Meter.FOUR_FOUR, listOf(PatternEvent(1.0, snare)))
+        Pattern(1.0, 1.0, 4, listOf(PatternEvent(1.0, snare)), emptyList())
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun leadLevelsAreBounded() {
+        Pattern(1.0, 1.0, 4, listOf(PatternEvent(0.0, snare, leadLevel = Pattern.MAX_LEAD_LEVEL + 1)), emptyList())
+    }
+
+    @Test
+    fun firstAboveIsABinarySearch() {
+        val values = doubleArrayOf(0.0, 1.0, 1.0, 2.0)
+        assertEquals(0, firstAbove(values, -1.0))
+        assertEquals(3, firstAbove(values, 1.0))
+        assertEquals(4, firstAbove(values, 2.0))
+        assertEquals(0, firstAbove(DoubleArray(0), 0.0))
     }
 
     @Test

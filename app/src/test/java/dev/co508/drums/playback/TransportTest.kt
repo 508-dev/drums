@@ -22,6 +22,7 @@ class TransportTest {
         val sound: String,
         val gain: Float,
         val pan: Float,
+        val frames: Int? = null,
     )
 
     /** Drives a transport like the mixer does, checking every event lands in the block it was asked for. */
@@ -33,10 +34,33 @@ class TransportTest {
         var frame = 0L
         private var blockEnd = 0L
         private val sink =
-            EventSink { f, sound, gain, pan ->
-                assertTrue("event at $f outside block ending $blockEnd", f in frame until blockEnd)
-                played += Played(f, sound.name, gain, pan)
+            object : EventSink {
+                override fun play(
+                    frame: Long,
+                    sound: Sound,
+                    gain: Float,
+                    pan: Float,
+                ) = record(frame, sound, gain, pan, null)
+
+                override fun playFor(
+                    frame: Long,
+                    sound: Sound,
+                    gain: Float,
+                    pan: Float,
+                    frames: Int,
+                ) = record(frame, sound, gain, pan, frames)
             }
+
+        private fun record(
+            f: Long,
+            sound: Sound,
+            gain: Float,
+            pan: Float,
+            frames: Int?,
+        ) {
+            assertTrue("event at $f outside block ending $blockEnd", f in frame until blockEnd)
+            played += Played(f, sound.name, gain, pan, frames)
+        }
 
         fun block() {
             blockEnd = frame + blockFrames
@@ -53,14 +77,19 @@ class TransportTest {
 
     private fun transport() = Transport(rate, click, accent)
 
-    /** Snare strokes every [step] quarters across [lengthQuarters]. */
+    /** Snare strokes every [step] quarters across [lengthQuarters], with a 4/4 click. */
     private fun strokes(
         lengthQuarters: Double,
         step: Double,
-        meter: Meter = Meter.FOUR_FOUR,
     ): Pattern {
         val count = (lengthQuarters / step).toInt()
-        return Pattern(lengthQuarters, meter, List(count) { PatternEvent(it * step, snare, gain = 0.5f, pan = 0.25f) })
+        return Pattern(
+            lengthQuarters,
+            beatQuarters = 1.0,
+            countInBeats = 4,
+            events = List(count) { PatternEvent(it * step, snare, gain = 0.5f, pan = 0.25f) },
+            clicks = Pattern.steadyClicks(lengthQuarters, beatsPerBar = 4, beatQuarters = 1.0),
+        )
     }
 
     @Test
@@ -287,8 +316,15 @@ class TransportTest {
     fun compoundMeterClicksOnDottedQuarters() {
         // 6/8 at 60 dotted quarters per minute: a click every second.
         val t = transport()
-        val sixEight = Meter(2, 1.5)
-        t.start(PlaySettings(Pattern(3.0, sixEight, emptyList()), beatsPerMinute = 60.0))
+        val sixEight =
+            Pattern(
+                3.0,
+                beatQuarters = 1.5,
+                countInBeats = 2,
+                events = emptyList(),
+                clicks = Pattern.steadyClicks(3.0, 2, 1.5),
+            )
+        t.start(PlaySettings(sixEight, beatsPerMinute = 60.0))
         val d = Driver(t, 240)
         d.runUntil(4 * 48_000 + 1)
         assertEquals(
@@ -298,15 +334,117 @@ class TransportTest {
         assertEquals(60.0, t.beatsPerMinuteAt(10.0), 1e-9)
     }
 
+    private fun graces(vararg leads: Int): Pattern {
+        val events = listOf(PatternEvent(1.0, snare)) + leads.map { PatternEvent(1.0, accent, leadLevel = it) }
+        return Pattern(4.0, 1.0, 4, events, emptyList())
+    }
+
+    @Test
+    fun graceStrokesSoundAFixedTimeBeforeTheirBeat() {
+        // 120 BPM: the beat at position 1 is frame 24 000. A 30 ms gap is 1 440 frames.
+        for (block in listOf(1, 96, 240, 1_024)) {
+            val t = transport()
+            t.graceGapMillis = 30.0
+            t.start(PlaySettings(graces(1, 2), beatsPerMinute = 120.0, countIn = false))
+            val d = Driver(t, block)
+            d.runUntil(200_000)
+            val frames = d.played.map { it.sound to it.frame }.sortedBy { it.second }
+            assertEquals(
+                "block $block",
+                listOf("accent" to 21_120L, "accent" to 22_560L, "snare" to 24_000L),
+                frames.take(3),
+            )
+            // The next loop's graces, exactly once each.
+            assertEquals(
+                listOf(117_120L, 118_560L),
+                d
+                    .ofSound("accent")
+                    .map { it.frame }
+                    .drop(2)
+                    .take(2),
+            )
+        }
+    }
+
+    @Test
+    fun theGraceGapIsATimeNotANoteValue() {
+        for (bpm in listOf(60.0, 240.0)) {
+            val t = transport()
+            t.start(PlaySettings(graces(1), beatsPerMinute = bpm, countIn = false))
+            val d = Driver(t, 240)
+            d.runUntil(300_000)
+            val gap = d.ofSound("snare").first().frame - d.ofSound("accent").first().frame
+            assertEquals("at $bpm BPM", (Transport.DEFAULT_GRACE_GAP_MILLIS * 48).toLong(), gap)
+        }
+    }
+
+    @Test
+    fun changingTheGraceGapNeverRepeatsOrDropsAGrace() {
+        val t = transport()
+        t.start(PlaySettings(graces(1), beatsPerMinute = 240.0, countIn = false))
+        val d = Driver(t, 240)
+        var gap = 0.0
+        while (d.frame < 2_000_000) {
+            t.graceGapMillis = gap
+            gap = (gap + 7) % 80 // Wobbles up and down every block.
+            d.block()
+        }
+        // 240 BPM: a 4-beat loop every 48 000 frames; one grace per loop.
+        val loops = d.ofSound("snare").size
+        assertTrue(d.ofSound("accent").size in loops..loops + 1)
+    }
+
+    @Test
+    fun durationsBecomeFrameCountsAtTheCurrentTempo() {
+        val t = transport()
+        val pattern = Pattern(4.0, 1.0, 4, listOf(PatternEvent(0.0, snare, durationQuarters = 1.5)), emptyList())
+        t.start(PlaySettings(pattern, beatsPerMinute = 120.0, countIn = false))
+        val d = Driver(t, 240)
+        d.runUntil(100_000)
+        // 1.5 quarters at 120 BPM, on every loop (one every 96 000 frames).
+        assertEquals(listOf(36_000, 36_000), d.played.map { it.frames })
+    }
+
     @Test
     fun renderingEventsDoesNotAllocate() {
         val allocated = threadAllocatedBytes() ?: return // Not measurable on this JVM.
         val t = transport()
         // 32nd notes at 300 BPM, with the trainer and slider moving the tempo.
-        val pattern = Pattern(4.0, Meter.FOUR_FOUR, List(32) { PatternEvent(it * 0.125, snare, pan = -0.2f) })
+        // With flams (a grace lead) and a buzz (a duration) in the mix too.
+        val pattern =
+            Pattern(
+                4.0,
+                beatQuarters = 1.0,
+                countInBeats = 4,
+                events =
+                    List(32) { PatternEvent(it * 0.125, snare, pan = -0.2f) } +
+                        List(4) { PatternEvent(it * 1.0, snare, leadLevel = 1) } +
+                        PatternEvent(3.5, snare, durationQuarters = 0.5),
+                clicks = Pattern.steadyClicks(4.0, 4, 1.0),
+            )
         t.start(PlaySettings(pattern, beatsPerMinute = 300.0, trainer = SpeedTrainer(1.0, 1, 1_000.0)))
         var count = 0L
-        val sink = EventSink { _, _, _, _ -> count++ }
+        val sink =
+            object : EventSink {
+                override fun play(
+                    frame: Long,
+                    sound: Sound,
+                    gain: Float,
+                    pan: Float,
+                ) {
+                    count++
+                }
+
+                override fun playFor(
+                    frame: Long,
+                    sound: Sound,
+                    gain: Float,
+                    pan: Float,
+                    frames: Int,
+                ) {
+                    count++
+                }
+            }
         var frame = 0L
 
         fun blocks(n: Int) {

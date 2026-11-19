@@ -266,6 +266,31 @@ class MixerTest {
     }
 
     @Test
+    fun playForCutsTheSoundShortWithAFade() {
+        val long = Sound("long", FloatArray(10_000) { 0.5f })
+        val source =
+            EventSource { from, _, sink ->
+                if (from == 0L) sink.playFor(100, long, 1f, -1f, 1_000)
+            }
+        val mixer = Mixer()
+        val stream = renderStream(mixer, source, 3_000, 256)
+        assertEquals(0.5f, left(stream, 100), 1e-6f)
+        assertEquals(0.5f, left(stream, 100 + 1_000 - Mixer.RELEASE_FRAMES - 1), 1e-6f)
+        // Halfway through the fade, half the level.
+        assertEquals(0.25f, left(stream, 100 + 1_000 - Mixer.RELEASE_FRAMES / 2), 0.01f)
+        assertEquals(0f, left(stream, 100 + 1_000), 0f)
+        assertEquals(0f, left(stream, 2_000), 0f)
+    }
+
+    @Test
+    fun playForLongerThanTheSoundPlaysItAll() {
+        val short = Sound("short", floatArrayOf(0.5f, 0.5f))
+        val source = EventSource { from, _, sink -> if (from == 0L) sink.playFor(0, short, 1f, -1f, 1_000) }
+        val stream = renderStream(Mixer(), source, 4, 4)
+        assertEquals(listOf(0.5f, 0.5f, 0f, 0f), (0 until 4).map { left(stream, it) })
+    }
+
+    @Test
     fun renderingDoesNotAllocate() {
         val allocated = threadAllocatedBytes() ?: return // Not measurable on this JVM.
         val snare = PlaceholderSounds.snare(48_000)

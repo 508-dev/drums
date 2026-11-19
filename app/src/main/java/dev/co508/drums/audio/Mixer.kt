@@ -34,6 +34,10 @@ class Mixer(
     private val voiceGainLeft = FloatArray(maxVoices)
     private val voiceGainRight = FloatArray(maxVoices)
 
+    // How many of the sound's samples the voice plays: its length, or less when
+    // cut short by playFor (the last RELEASE_FRAMES then fade out).
+    private val voiceLimit = IntArray(maxVoices)
+
     private var blockStart = 0L
     private var blockFrames = 0
 
@@ -55,7 +59,23 @@ class Mixer(
     @Volatile
     private var peakVoices = 0
 
-    private val sink = EventSink { frame, sound, gain, pan -> startVoice(frame, sound, gain, pan) }
+    private val sink =
+        object : EventSink {
+            override fun play(
+                frame: Long,
+                sound: Sound,
+                gain: Float,
+                pan: Float,
+            ) = startVoice(frame, sound, gain, pan, sound.samples.size)
+
+            override fun playFor(
+                frame: Long,
+                sound: Sound,
+                gain: Float,
+                pan: Float,
+                frames: Int,
+            ) = startVoice(frame, sound, gain, pan, frames.coerceIn(0, sound.samples.size))
+        }
 
     /**
      * Renders the next [frames] frames into [out] as interleaved stereo
@@ -79,7 +99,7 @@ class Mixer(
             val sound = voiceSound[v] ?: continue
             mixVoice(v, sound.samples, out, frames)
             val next = voicePosition[v] + frames
-            if (next >= sound.samples.size) {
+            if (next >= voiceLimit[v]) {
                 voiceSound[v] = null
             } else {
                 voicePosition[v] = next
@@ -109,14 +129,19 @@ class Mixer(
         frames: Int,
     ) {
         val position = voicePosition[v]
+        val limit = voiceLimit[v]
         val first = if (position < 0) -position else 0
-        val end = minOf(frames, samples.size - position)
+        val end = minOf(frames, limit - position)
         val left = voiceGainLeft[v]
         val right = voiceGainRight[v]
+        // A voice cut short fades out over its last samples.
+        val fadeFrom = if (limit < samples.size) limit - minOf(RELEASE_FRAMES, limit) else Int.MAX_VALUE
+        val fadeLength = (limit - fadeFrom).toFloat()
         var i = first
         var s = position + first
         while (i < end) {
-            val x = samples[s]
+            var x = samples[s]
+            if (s >= fadeFrom) x *= (limit - s) / fadeLength
             out[2 * i] += x * left
             out[2 * i + 1] += x * right
             i++
@@ -129,6 +154,7 @@ class Mixer(
         sound: Sound,
         gain: Float,
         pan: Float,
+        limit: Int,
     ) {
         var offset = frame - blockStart
         if (offset < 0) {
@@ -142,11 +168,12 @@ class Mixer(
             droppedEvents++
             return
         }
-        if (sound.samples.isEmpty()) return
+        if (limit <= 0) return
 
         val v = freeVoice()
         voiceSound[v] = sound
         voicePosition[v] = -offset.toInt()
+        voiceLimit[v] = limit
         val angle = (pan.coerceIn(-1f, 1f) + 1f) * (PI / 4)
         val g = gain.coerceAtLeast(0f)
         voiceGainLeft[v] = g * cos(angle).toFloat()
@@ -166,6 +193,9 @@ class Mixer(
 
     companion object {
         const val DEFAULT_MAX_VOICES = 64
+
+        /** The fade at the end of a voice cut short by [EventSink.playFor]: about 5 ms. */
+        const val RELEASE_FRAMES = 240
 
         /** Below this level the mix passes unchanged. */
         const val SOFT_CLIP_KNEE = 0.9f

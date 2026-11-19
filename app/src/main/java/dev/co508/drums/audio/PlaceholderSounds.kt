@@ -62,6 +62,36 @@ object PlaceholderSounds {
         return Sound("snare", samples)
     }
 
+    /**
+     * A sustained buzz (multiple-bounce) roll: high-passed noise pulsing at the
+     * rate of stick bounces. It is long, and the mixer cuts it to each roll's
+     * length ([dev.co508.drums.audio.EventSink.playFor]).
+     */
+    fun buzz(
+        sampleRate: Int,
+        seed: Int = 2,
+    ): Sound {
+        val random = Random(seed)
+        val samples = FloatArray(frames(sampleRate, BUZZ_SECONDS))
+        val rc = 1.0 / (2 * PI * SNARE_NOISE_HIGH_PASS_HZ)
+        val alpha = rc / (rc + 1.0 / sampleRate)
+        var previousIn = 0.0
+        var previousOut = 0.0
+        for (i in samples.indices) {
+            val t = i.toDouble() / sampleRate
+            val white = random.nextDouble(-1.0, 1.0)
+            val highPassed = alpha * (previousOut + white - previousIn)
+            previousIn = white
+            previousOut = highPassed
+            // Each bounce is a quick swell and decay of the wires.
+            val bounce = (t * BUZZ_BOUNCE_HZ) % 1.0
+            val envelope = 0.45 + 0.55 * exp(-bounce * 6)
+            samples[i] = (highPassed * envelope * attack(t)).toFloat()
+        }
+        finish(samples, sampleRate, 0.5f)
+        return Sound("buzz", samples)
+    }
+
     private fun frames(
         sampleRate: Int,
         seconds: Double,
@@ -96,6 +126,8 @@ object PlaceholderSounds {
     private const val CLICK_SECONDS = 0.03
     private const val CLICK_DECAY_SECONDS = 0.006
     private const val SNARE_SECONDS = 0.25
+    private const val BUZZ_SECONDS = 8.0
+    private const val BUZZ_BOUNCE_HZ = 28.0
     private const val SNARE_NOISE_HIGH_PASS_HZ = 1_000.0
     private const val SNARE_NOISE_DECAY_SECONDS = 0.055
     private const val SNARE_TONE_HZ = 185.0

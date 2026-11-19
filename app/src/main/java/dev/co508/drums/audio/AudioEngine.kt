@@ -84,6 +84,19 @@ fun interface EventSink {
         gain: Float,
         pan: Float,
     )
+
+    /**
+     * As [play], but the sound stops after [frames] frames, with a short fade
+     * so the cut doesn't click. For sounds that last a note's length, like a
+     * buzz roll.
+     */
+    fun playFor(
+        frame: Long,
+        sound: Sound,
+        gain: Float,
+        pan: Float,
+        frames: Int,
+    ) = play(frame, sound, gain, pan)
 }
 
 data class AudioEngineStats(

@@ -1,7 +1,6 @@
 package dev.co508.drums.diagnostics
 
 import dev.co508.drums.audio.Sound
-import dev.co508.drums.playback.Meter
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -15,6 +14,7 @@ class DiagnosticsMathTest {
         assertEquals(0.125, pattern.events[1].position, 0.0)
         assertEquals(3.875, pattern.events.last().position, 0.0)
         assertEquals(listOf(0.3f, -0.3f), pattern.events.take(2).map { it.pan })
+        assertEquals(listOf(true, false, false, false), pattern.clicks.map { it.accent })
     }
 
     @Test
@@ -26,7 +26,7 @@ class DiagnosticsMathTest {
 
     @Test
     fun beatPhaseFindsTheBeatAndTimeSinceIt() {
-        val phase = beatPhase(position = 5.25, meter = Meter.FOUR_FOUR, beatsPerMinute = 120.0)
+        val phase = beatPhase(position = 5.25, beatsPerBar = 4, beatQuarters = 1.0, beatsPerMinute = 120.0)
         assertEquals(1, phase.beatInBar)
         assertEquals(0.25, phase.fraction, 1e-12)
         assertEquals(125.0, phase.millisSinceBeat, 1e-9)
@@ -34,8 +34,8 @@ class DiagnosticsMathTest {
 
     @Test
     fun countInBeatsAreNegativePositions() {
-        assertEquals(0, beatPhase(-4.0, Meter.FOUR_FOUR, 60.0).beatInBar)
-        assertEquals(3, beatPhase(-0.5, Meter.FOUR_FOUR, 60.0).beatInBar)
+        assertEquals(0, beatPhase(-4.0, 4, 1.0, 60.0).beatInBar)
+        assertEquals(3, beatPhase(-0.5, 4, 1.0, 60.0).beatInBar)
     }
 
     @Test

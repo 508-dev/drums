@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
+<!-- Debug builds only. CC BY-SA 4.0. See docs/musicxml-style.md. -->
+<score-partwise version="4.0">
+  <work><work-title>Ornament check</work-title></work>
+  <part-list>
+    <score-part id="P1">
+      <part-name>Snare Drum</part-name>
+      <score-instrument id="P1-I39"><instrument-name>Acoustic Snare</instrument-name></score-instrument>
+      <midi-instrument id="P1-I39"><midi-channel>10</midi-channel><midi-unpitched>39</midi-unpitched></midi-instrument>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <barline location="left"><bar-style>heavy-light</bar-style><repeat direction="forward"/></barline>
+      <attributes>
+        <divisions>4</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>percussion</sign></clef>
+        <staff-details><staff-lines>1</staff-lines></staff-details>
+      </attributes>
+      <direction placement="above">
+        <direction-type><metronome><beat-unit>quarter</beat-unit><per-minute>60</per-minute></metronome></direction-type>
+        <sound tempo="60"/>
+      </direction>
+        <direction placement="below"><direction-type><words>lR</words></direction-type></direction>
+        <note><grace slash="yes"/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><instrument id="P1-I39"/><voice>1</voice><type>eighth</type></note>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>4</duration><instrument id="P1-I39"/><voice>1</voice><type>quarter</type></note>
+        <direction placement="below"><direction-type><words>rL</words></direction-type></direction>
+        <note><grace slash="yes"/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><instrument id="P1-I39"/><voice>1</voice><type>eighth</type></note>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>4</duration><instrument id="P1-I39"/><voice>1</voice><type>quarter</type></note>
+        <direction placement="below"><direction-type><words>llR</words></direction-type></direction>
+        <note><grace/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><instrument id="P1-I39"/><voice>1</voice><type>16th</type><beam number="1">begin</beam><beam number="2">begin</beam></note>
+        <note><grace/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><instrument id="P1-I39"/><voice>1</voice><type>16th</type><beam number="1">end</beam><beam number="2">end</beam></note>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>4</duration><instrument id="P1-I39"/><voice>1</voice><type>quarter</type></note>
+        <direction placement="below"><direction-type><words>rrL</words></direction-type></direction>
+        <note><grace/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><instrument id="P1-I39"/><voice>1</voice><type>16th</type><beam number="1">begin</beam><beam number="2">begin</beam></note>
+        <note><grace/><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><instrument id="P1-I39"/><voice>1</voice><type>16th</type><beam number="1">end</beam><beam number="2">end</beam></note>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>4</duration><instrument id="P1-I39"/><voice>1</voice><type>quarter</type></note>
+    </measure>
+    <measure number="2">
+        <direction placement="below"><direction-type><words>R</words></direction-type></direction>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>2</duration><instrument id="P1-I39"/><voice>1</voice><type>eighth</type><beam number="1">begin</beam><notations><articulations><accent/></articulations></notations></note>
+        <direction placement="below"><direction-type><words>L</words></direction-type></direction>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>2</duration><instrument id="P1-I39"/><voice>1</voice><type>eighth</type><notehead parentheses="yes">normal</notehead><beam number="1">end</beam></note>
+        <direction placement="below"><direction-type><words>R</words></direction-type></direction>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>2</duration><instrument id="P1-I39"/><voice>1</voice><type>eighth</type><beam number="1">begin</beam><notations><ornaments><tremolo type="single">1</tremolo></ornaments></notations></note>
+        <direction placement="below"><direction-type><words>L</words></direction-type></direction>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>2</duration><instrument id="P1-I39"/><voice>1</voice><type>eighth</type><beam number="1">end</beam><notations><ornaments><tremolo type="single">1</tremolo></ornaments></notations></note>
+        <direction placement="below"><direction-type><words>R</words></direction-type></direction>
+        <note><unpitched><display-step>E</display-step><display-octave>4</display-octave></unpitched><duration>8</duration><instrument id="P1-I39"/><voice>1</voice><type>half</type><notations><ornaments><tremolo type="unmeasured">0</tremolo></ornaments></notations></note>
+      <barline location="right"><bar-style>light-heavy</bar-style><repeat direction="backward"/></barline>
+    </measure>
+  </part>
+</score-partwise>
