@@ -345,14 +345,19 @@ Lesson files are untrusted from M6 on, and every MusicXML file names a remote
 DTD in its DOCTYPE. The reader is safe by construction, not just because
 the app has no INTERNET permission:
 
-- DOCTYPE processing stays off, so the DTD is never fetched or read.
-- A DOCTYPE with an internal subset (`[ … ]`, where entities are declared)
-  is rejected.
-- Any entity reference other than XML's five predefined ones and character
-  references is rejected.
+- **Raw text is checked first.** Before any parser sees the file, its raw
+  text is scanned: an internal DTD subset (`[ … ]`) or any `<!ENTITY`
+  declaration rejects it. Files over 8 MB are rejected too.
+- **DOCTYPE processing is turned off.** The DTD is never fetched or read.
+  Android's `Xml.newPullParser()` turns DOCTYPE processing *on* (found on the
+  Sony in M2), so the reader switches it off. kxml2 has it off already.
+- **Only standard entities are allowed.** Any entity reference other than
+  XML's five predefined ones and character references is rejected.
 
-That rules out external-entity (XXE) and entity-expansion attacks whatever
-the parser supports. Tests feed it both.
+Checking the raw text first makes the protection independent of what the
+parser would do with a DTD. It rules out external-entity (XXE) and
+entity-expansion attacks. Tests feed it both, including through a parser that
+fails the test if it is ever handed such a file.
 
 ### The Lesson Model Is What's Written
 
@@ -380,7 +385,47 @@ attached.
 
 Flams and drags put the main note on the beat and their grace notes shortly
 before it, played quieter. MusicXML gives grace notes no duration, so the gap is
-our choice. It gets tuned by ear in M2 and recorded here.
+our choice.
+
+- **The gap is a time, not a note value.** A flam sounds the same width at 60
+  and at 200 BPM, as a drummer plays it. Each grace stroke sounds one gap
+  before the next stroke, so a drag's two graces are one gap apart and the
+  second is one gap before the beat.
+- **The transport places grace strokes exactly.** It does this with a
+  lookahead window per grace level, so they play exactly once even while
+  the tempo or the gap changes.
+- **Grace strokes are quieter:** a gain of 0.3, against 0.55 for a normal
+  stroke (see "A Lesson Plays As Written").
+
+The gap starts at **30 ms**, a first guess. The maintainer tunes it by ear on
+the Sony with the debug screen's "Grace gap" slider and its "Ornament check"
+lesson. The tuned value replaces 30 ms here and in
+`Transport.DEFAULT_GRACE_GAP_MILLIS`.
+
+### A Lesson Plays As Written
+
+A lesson's `Notation` is expanded (`Expansion`) into a stroke timeline that
+the transport loops:
+
+- **Repeats are unrolled:** a backward repeat goes back to the last forward
+  repeat, or the start, for its number of passes. Repeats don't nest.
+- **Ties hold, they don't restrike,** except that a tied buzz roll continues
+  through the tie.
+- **Tremolo slashes become diddles.** Each slash adds a beam to the note's
+  own: an eighth with one slash is two 16ths. Every stroke gets the note's
+  hand.
+- **A buzz roll is one sustained buzz,** cut to the roll's length at the
+  current tempo with a 5 ms fade. Until #19 brings samples, the buzz is
+  synthesized: pulsing high-passed noise.
+- **Dynamics are gains:** accent (and marcato) 1.0, normal 0.55, grace 0.3,
+  ghost 0.18. These are placeholder levels for the synthesized snare. The
+  samples in M3 come at three dynamics and will set their own.
+- **"Lead with left" swaps every R and L,** grace notes included.
+- **The metronome follows each bar's own time signature,** and the count-in
+  is one bar of the first.
+
+The transport's `Pattern` is the expanded lesson as events and clicks. M1's
+placeholder `Meter` is gone.
 
 ### Storage
 

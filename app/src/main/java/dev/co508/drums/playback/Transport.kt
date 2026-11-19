@@ -11,7 +11,7 @@ import kotlin.math.floor
 /** How the transport should play a pattern. Immutable. */
 class PlaySettings(
     val pattern: Pattern,
-    /** Starting tempo, in the pattern meter's beats per minute. */
+    /** Starting tempo, in the pattern's beats ([Pattern.beatQuarters]) per minute. */
     val beatsPerMinute: Double,
     /** Play one bar of clicks before the pattern. */
     val countIn: Boolean = true,
@@ -30,9 +30,14 @@ class PlaySettings(
  * length)`. The [tempoMap] converts between position and output frames in both
  * directions, and stays continuous across tempo changes.
  *
- * Control methods ([start], [stop], [setTempo], the volumes) may be called from
- * any thread and take effect at the next block. [events] runs on the mixer
- * thread and does not allocate.
+ * Grace strokes ([PatternEvent.leadLevel] above 0) sound a fixed time before
+ * their beat. Each lead level has its own window of positions, running that
+ * many grace gaps ahead of the block. Those windows tile the timeline just as
+ * the main one does, so every grace stroke plays exactly once.
+ *
+ * Control methods ([start], [stop], [setTempo], the volumes, the grace gap)
+ * may be called from any thread and take effect at the next block. [events]
+ * runs on the mixer thread and does not allocate.
  */
 class Transport(
     val sampleRate: Int,
@@ -61,6 +66,10 @@ class Transport(
     @Volatile
     var instrumentVolume = 1f
 
+    /** How far apart grace strokes are, and how far the last one is before its beat. */
+    @Volatile
+    var graceGapMillis = DEFAULT_GRACE_GAP_MILLIS
+
     /** Updated by the mixer thread, so it runs ahead of what is heard by the output latency. */
     @Volatile
     var state = State.STOPPED
@@ -75,6 +84,7 @@ class Transport(
     private var tempo = 0.0
     private var loopIndex = 0L
     private var windowEnd = 0.0
+    private val leadWindowEnds = DoubleArray(Pattern.MAX_LEAD_LEVEL + 1)
     private var windowIncludesStart = false
     private var expectedFrame = -1L
 
@@ -98,8 +108,8 @@ class Transport(
 
     /** The tempo in effect at an output [frame], in beats per minute; 0 when stopped. */
     fun beatsPerMinuteAt(frame: Double): Double {
-        val meter = settings?.pattern?.meter ?: return Double.NaN
-        return tempoMap.rateAt(frame) * 60.0 * sampleRate / meter.beatQuarters
+        val pattern = settings?.pattern ?: return Double.NaN
+        return tempoMap.rateAt(frame) * 60.0 * sampleRate / pattern.beatQuarters
     }
 
     override fun events(
@@ -148,8 +158,16 @@ class Transport(
             }
         }
 
-        emit(playing, end, fromFrame, toFrame, sink)
+        emit(playing, 0, windowEnd, end, 0.0, fromFrame, toFrame, sink)
         windowEnd = end
+        val gapFrames = graceGapMillis.coerceIn(0.0, MAX_GRACE_GAP_MILLIS) * sampleRate / 1000.0
+        for (level in 1..playing.pattern.maxLeadLevel) {
+            val lead = level * gapFrames
+            // max(): a shrinking gap must not reopen positions already played.
+            val leadEnd = maxOf(leadWindowEnds[level], tempoMap.positionAt(lastFrame + lead))
+            emit(playing, level, leadWindowEnds[level], leadEnd, lead, fromFrame, toFrame, sink)
+            leadWindowEnds[level] = leadEnd
+        }
         windowIncludesStart = false
         if (finished) state = State.FINISHED
     }
@@ -160,10 +178,12 @@ class Transport(
     ) {
         settings = playing
         tempo = clampTempo(playing.beatsPerMinute)
-        val start = if (playing.countIn) -playing.pattern.meter.barQuarters else 0.0
+        val pattern = playing.pattern
+        val start = if (playing.countIn) -pattern.countInBeats * pattern.beatQuarters else 0.0
         tempoMap.begin(fromFrame.toDouble(), start, rateOf(tempo, playing))
         loopIndex = if (playing.countIn) -1 else 0
         windowEnd = start
+        leadWindowEnds.fill(start)
         windowIncludesStart = true
         state = State.PLAYING
     }
@@ -183,24 +203,37 @@ class Transport(
         tempoMap.begin(fromFrame.toDouble(), windowEnd + rate, rate)
     }
 
+    /** Emits the events of one lead level (0 = on the beat, with the clicks) in the window (start, end]. */
     private fun emit(
         playing: PlaySettings,
+        level: Int,
+        start: Double,
         end: Double,
+        leadFrames: Double,
         fromFrame: Long,
         toFrame: Long,
         sink: EventSink,
     ) {
         val pattern = playing.pattern
-        val meter = pattern.meter
-        val start = windowEnd
         val clickGain = clickVolume
         val instrumentGain = instrumentVolume
 
-        if (playing.countIn && start < 0.0 && clickGain > 0f) {
-            for (m in 0 until meter.beatsPerBar) {
-                val position = (m - meter.beatsPerBar) * meter.beatQuarters
+        if (level == 0 && playing.countIn && start < 0.0 && clickGain > 0f) {
+            for (m in 0 until pattern.countInBeats) {
+                val position = (m - pattern.countInBeats) * pattern.beatQuarters
                 if (inWindow(position, start, end)) {
-                    sink.play(frameOf(position, fromFrame, toFrame), if (m == 0) accentClick else click, clickGain, 0f)
+                    sink.play(
+                        frameOf(position, 0.0, fromFrame, toFrame),
+                        if (m ==
+                            0
+                        ) {
+                            accentClick
+                        } else {
+                            click
+                        },
+                        clickGain,
+                        0f,
+                    )
                 }
             }
         }
@@ -211,32 +244,52 @@ class Transport(
         val lastLoop = if (playing.loop) floor(end / length).toLong() else 0L
         for (k in firstLoop..lastLoop) {
             val base = k * length
-            if (clickGain > 0f) {
+            if (level == 0 && clickGain > 0f) {
                 val clicks = pattern.clickPositions
-                for (i in clicks.indices) {
+                var i = scanStart(clicks, start - base)
+                while (i < clicks.size && base + clicks[i] <= end) {
                     val position = base + clicks[i]
                     if (inWindow(position, start, end)) {
                         val sound = if (pattern.clickAccents[i]) accentClick else click
-                        sink.play(frameOf(position, fromFrame, toFrame), sound, clickGain, 0f)
+                        sink.play(frameOf(position, 0.0, fromFrame, toFrame), sound, clickGain, 0f)
                     }
+                    i++
                 }
             }
-            if (instrumentGain > 0f) {
+            if (instrumentGain > 0f && level <= pattern.maxLeadLevel) {
                 val positions = pattern.eventPositions
-                for (i in positions.indices) {
+                var i = scanStart(positions, start - base)
+                while (i < positions.size && base + positions[i] <= end) {
                     val position = base + positions[i]
-                    if (inWindow(position, start, end)) {
-                        sink.play(
-                            frameOf(position, fromFrame, toFrame),
-                            pattern.eventSounds[i],
-                            pattern.eventGains[i] * instrumentGain,
-                            pattern.eventPans[i],
-                        )
+                    if (pattern.eventLeadLevels[i] == level && inWindow(position, start, end)) {
+                        val frame = frameOf(position, leadFrames, fromFrame, toFrame)
+                        val sound = pattern.eventSounds[i]
+                        val gain = pattern.eventGains[i] * instrumentGain
+                        val duration = pattern.eventDurations[i]
+                        if (duration > 0.0) {
+                            val frames = tempoMap.frameAt(position + duration) - tempoMap.frameAt(position)
+                            sink.playFor(
+                                frame,
+                                sound,
+                                gain,
+                                pattern.eventPans[i],
+                                frames.toLong().coerceIn(1L, Int.MAX_VALUE.toLong()).toInt(),
+                            )
+                        } else {
+                            sink.play(frame, sound, gain, pattern.eventPans[i])
+                        }
                     }
+                    i++
                 }
             }
         }
     }
+
+    /** Where to start scanning sorted [values] for positions after [x]: one early, so rounding can't skip one. */
+    private fun scanStart(
+        values: DoubleArray,
+        x: Double,
+    ): Int = maxOf(0, firstAbove(values, x) - 1)
 
     private fun inWindow(
         position: Double,
@@ -245,21 +298,22 @@ class Transport(
     ): Boolean = (position > start || (windowIncludesStart && position == start)) && position <= end
 
     /**
-     * The first frame at or after [position]. An event within [FRAME_EPSILON] of a
+     * The first frame at or after [position], less [leadFrames]. An event within [FRAME_EPSILON] of a
      * whole frame lands on it, so float rounding can't make it a frame late. The
      * window test decides which block an event belongs to; clamping keeps
      * rounding from moving it out.
      */
     private fun frameOf(
         position: Double,
+        leadFrames: Double,
         fromFrame: Long,
         toFrame: Long,
-    ): Long = ceil(tempoMap.frameAt(position) - FRAME_EPSILON).toLong().coerceIn(fromFrame, toFrame - 1)
+    ): Long = ceil(tempoMap.frameAt(position) - leadFrames - FRAME_EPSILON).toLong().coerceIn(fromFrame, toFrame - 1)
 
     private fun rateOf(
         beatsPerMinute: Double,
         playing: PlaySettings,
-    ): Double = beatsPerMinute * playing.pattern.meter.beatQuarters / (60.0 * sampleRate)
+    ): Double = beatsPerMinute * playing.pattern.beatQuarters / (60.0 * sampleRate)
 
     private fun clampTempo(beatsPerMinute: Double): Double =
         if (beatsPerMinute.isNaN()) MIN_BPM else beatsPerMinute.coerceIn(MIN_BPM, MAX_BPM)
@@ -267,6 +321,10 @@ class Transport(
     companion object {
         const val MIN_BPM = 1.0
         const val MAX_BPM = 1_000.0
+
+        /** Until it's tuned by ear on the reference device (DECISIONS.md, "Grace Notes Sound Just Before The Beat"). */
+        const val DEFAULT_GRACE_GAP_MILLIS = 30.0
+        const val MAX_GRACE_GAP_MILLIS = 150.0
         private const val FRAME_EPSILON = 1e-6
         private val NO_TEMPO = Double.NaN.toRawBits()
     }

@@ -6,6 +6,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import org.kxml2.io.KXmlParser
+import org.xmlpull.v1.XmlPullParser
+import java.io.InputStream
 
 /**
  * Untrusted MusicXML must never make the importer read anything but the file
@@ -72,6 +75,69 @@ class XmlSecurityTest {
         val result = import(xml)
         assertTrue(result.toString(), result is ImportResult.Success)
         assertEquals("Rolls & Flams \u263A", (result as ImportResult.Success).notation.title)
+    }
+
+    /** Like Android's Xml.newPullParser(), which turns DOCTYPE processing on. */
+    private class DoctypeProcessingParser : KXmlParser() {
+        var processDocdecl = true
+
+        override fun getFeature(name: String?): Boolean =
+            if (name == XmlPullParser.FEATURE_PROCESS_DOCDECL) processDocdecl else super.getFeature(name)
+
+        override fun setFeature(
+            name: String?,
+            value: Boolean,
+        ) {
+            if (name == XmlPullParser.FEATURE_PROCESS_DOCDECL) processDocdecl = value else super.setFeature(name, value)
+        }
+    }
+
+    @Test
+    fun aParserThatProcessesDoctypesIsTurnedOffFirst() {
+        val parser = DoctypeProcessingParser()
+        val result = MusicXmlImporter { parser }.read(LessonXml.score(LessonXml.rlrl).byteInputStream(), strict = true)
+        assertTrue(result.toString(), result is ImportResult.Success)
+        assertFalse(parser.processDocdecl)
+    }
+
+    /** A parser that fails the test if it is ever handed a file. */
+    private class UntouchableParser : KXmlParser() {
+        override fun setInput(
+            stream: InputStream?,
+            encoding: String?,
+        ) = throw AssertionError("the parser was given the file")
+    }
+
+    @Test
+    fun entityDeclarationsAreRejectedBeforeAnyParserSeesThem() {
+        val xml = """<?xml version="1.0"?><!DOCTYPE a [ <!ENTITY x "y"> ]><a>&x;</a>"""
+        val result = MusicXmlImporter { UntouchableParser() }.read(xml.byteInputStream(), strict = false)
+        assertEquals(
+            listOf(
+                "The file declares its own DTD, which isn't allowed.",
+            ),
+            (result as ImportResult.Failure).errors.map {
+                it.toString()
+            },
+        )
+        // The same in UTF-16, with a byte-order mark.
+        val utf16 =
+            MusicXmlImporter {
+                UntouchableParser()
+            }.read(xml.toByteArray(Charsets.UTF_16).inputStream(), strict = false)
+        assertTrue(utf16 is ImportResult.Failure)
+    }
+
+    @Test
+    fun hugeFilesAreRejected() {
+        val big = ByteArray(XmlTree.MAX_BYTES + 1) { ' '.code.toByte() }
+        val result = testImporter().read(big.inputStream(), strict = false)
+        assertEquals(
+            listOf("The file is too large to be a lesson."),
+            (result as ImportResult.Failure).errors.map {
+                it.toString()
+            },
+        )
     }
 
     @Test

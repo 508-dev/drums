@@ -1,7 +1,6 @@
 package dev.co508.drums.diagnostics
 
 import dev.co508.drums.audio.Sound
-import dev.co508.drums.playback.Meter
 import dev.co508.drums.playback.Pattern
 import dev.co508.drums.playback.PatternEvent
 import kotlin.math.floor
@@ -16,20 +15,21 @@ fun subdivisionPattern(
     snare: Sound,
 ): Pattern {
     require(notesPerBeat > 0) { "notesPerBeat must be positive" }
-    val meter = Meter.FOUR_FOUR
-    val strokes = meter.beatsPerBar * notesPerBeat
+    val strokes = 4 * notesPerBeat
     return Pattern(
-        lengthQuarters = meter.barQuarters,
-        meter = meter,
+        lengthQuarters = 4.0,
+        beatQuarters = 1.0,
+        countInBeats = 4,
         events =
             List(strokes) { i ->
                 PatternEvent(
-                    position = i * meter.beatQuarters / notesPerBeat,
+                    position = i.toDouble() / notesPerBeat,
                     sound = snare,
                     gain = 0.8f,
                     pan = if (i % 2 == 0) HAND_PAN else -HAND_PAN,
                 )
             },
+        clicks = Pattern.steadyClicks(4.0, beatsPerBar = 4, beatQuarters = 1.0),
     )
 }
 
@@ -47,13 +47,14 @@ data class BeatPhase(
 
 fun beatPhase(
     position: Double,
-    meter: Meter,
+    beatsPerBar: Int,
+    beatQuarters: Double,
     beatsPerMinute: Double,
 ): BeatPhase {
-    val beats = position / meter.beatQuarters
+    val beats = position / beatQuarters
     val beat = floor(beats)
     val fraction = beats - beat
-    val beatInBar = Math.floorMod(beat.toLong(), meter.beatsPerBar.toLong()).toInt()
+    val beatInBar = Math.floorMod(beat.toLong(), beatsPerBar.toLong()).toInt()
     val millis = if (beatsPerMinute > 0) fraction * 60_000.0 / beatsPerMinute else 0.0
     return BeatPhase(beatInBar, fraction, millis)
 }

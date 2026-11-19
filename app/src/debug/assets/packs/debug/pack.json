@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "id": "debug",
+  "title": "Debug: ornament checks",
+  "version": 1,
+  "author": "Drums contributors",
+  "license": "CC-BY-SA-4.0",
+  "lessons": [
+    {
+      "id": "ornament-check",
+      "file": "ornament-check.musicxml",
+      "title": "Ornament check",
+      "family": "flams",
+      "level": 1,
+      "tempo": { "min": 30, "max": 200, "start": 60 },
+      "description": "Debug builds only: flams, drags, accents, ghost notes, diddles and a buzz roll, for tuning playback by ear."
+    }
+  ]
+}
