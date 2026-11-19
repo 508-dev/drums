@@ -25,17 +25,28 @@ class PackLoaderTest {
         val pack = (result as PackResult.Success).pack
         assertEquals("builtin", pack.manifest.id)
         assertEquals("CC-BY-SA-4.0", pack.manifest.license)
-        val lesson = pack.lessons.single()
-        assertEquals("quarter-notes", lesson.id)
-        assertEquals(Family.TIMING, lesson.manifest.family)
-        assertEquals(TempoRange(40, 200, 80), lesson.manifest.tempo)
-        assertEquals(listOf(Hand.RIGHT, Hand.LEFT, Hand.RIGHT, Hand.LEFT), lesson.notation.notes.map { it.hand })
         assertEquals(
-            2,
-            lesson.notation.measures
-                .single()
-                .repeatTimes,
+            listOf(
+                "single-stroke-roll",
+                "double-stroke-open-roll",
+                "multiple-bounce-roll",
+                "single-paradiddle",
+                "flam",
+                "flam-accent",
+                "drag",
+            ),
+            pack.lessons.map { it.id },
         )
+        // Every lesson's notes carry sticking, grace notes included (strict mode guarantees it).
+        for (lesson in pack.lessons) {
+            assertTrue(
+                lesson.id,
+                lesson.notation.notes.all { n ->
+                    n.hand != null &&
+                        n.graceNotes.all { it.hand != null }
+                },
+            )
+        }
     }
 
     private fun pack(

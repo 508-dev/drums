@@ -1,22 +1,107 @@
 {
   "format": 1,
   "id": "builtin",
-  "title": "Built-in lessons",
-  "version": 1,
+  "title": "Rudiments",
+  "version": 2,
   "author": "Drums contributors",
   "license": "CC-BY-SA-4.0",
   "lessons": [
     {
-      "id": "quarter-notes",
-      "file": "quarter-notes.musicxml",
-      "title": "Quarter notes",
-      "family": "timing",
+      "id": "single-stroke-roll",
+      "file": "single-stroke-roll.musicxml",
+      "title": "Single Stroke Roll",
+      "family": "rolls",
       "level": 1,
       "tempo": { "min": 40, "max": 200, "start": 80 },
-      "description": "Alternating single strokes on every beat, right hand first.",
+      "description": "Sixteenth notes, one stroke per hand in turn: R L R L. The foundation of every roll and most fills.",
       "tips": [
-        "Let the stick rebound; don't press it into the head.",
-        "Keep both sticks at the same height so every stroke sounds the same."
+        "Start each stroke from the same height so both hands sound alike.",
+        "Let the stick bounce back up on its own; lift, don't press.",
+        "Speed comes last: keep it even at a slow tempo before raising it."
+      ]
+    },
+    {
+      "id": "double-stroke-open-roll",
+      "file": "double-stroke-open-roll.musicxml",
+      "title": "Double Stroke Open Roll",
+      "family": "rolls",
+      "level": 2,
+      "tempo": { "min": 40, "max": 180, "start": 60 },
+      "description": "Two strokes per hand, R R L L. Each slashed eighth note is played as two sixteenths with the same hand.",
+      "tips": [
+        "Make the second stroke of each pair as loud as the first.",
+        "At slow tempos play both strokes from the wrist; let the fingers take over as it speeds up.",
+        "Listen for a steady stream of notes, not pairs."
+      ]
+    },
+    {
+      "id": "multiple-bounce-roll",
+      "file": "multiple-bounce-roll.musicxml",
+      "title": "Multiple Bounce Roll",
+      "family": "rolls",
+      "level": 1,
+      "tempo": { "min": 40, "max": 160, "start": 60 },
+      "description": "A buzz roll: each hand presses the stick into the head so it bounces several times, and the hands alternate on every eighth note.",
+      "tips": [
+        "Keep a little pressure in the fingers so each stroke buzzes rather than bounces twice.",
+        "Aim for one smooth, continuous sound with no gaps where the hands change.",
+        "Keep both hands' buzzes the same length and volume."
+      ]
+    },
+    {
+      "id": "single-paradiddle",
+      "file": "single-paradiddle.musicxml",
+      "title": "Single Paradiddle",
+      "family": "diddles",
+      "level": 2,
+      "tempo": { "min": 40, "max": 180, "start": 70 },
+      "description": "Two single strokes and a double, R L R R, then the same starting on the left, L R L L. The first note of each group is accented.",
+      "tips": [
+        "Play the accent from a higher stick and the other notes low.",
+        "The double at the end of each group sets up the other hand's accent; keep it relaxed.",
+        "Say it as you play: pa-ra-did-dle."
+      ]
+    },
+    {
+      "id": "flam",
+      "file": "flam.musicxml",
+      "title": "Flam",
+      "family": "flams",
+      "level": 2,
+      "tempo": { "min": 40, "max": 160, "start": 60 },
+      "description": "A quiet grace note just before an accented main note, alternating hands: the grace note is played by the other hand.",
+      "tips": [
+        "Hold the grace-note stick low and the main stick high, so both land almost together.",
+        "Aim for one thick sound, not two separate hits.",
+        "After each flam, the hand that played the main note drops low for the next grace note."
+      ]
+    },
+    {
+      "id": "flam-accent",
+      "file": "flam-accent.musicxml",
+      "title": "Flam Accent",
+      "family": "flams",
+      "level": 3,
+      "tempo": { "min": 40, "max": 150, "start": 60 },
+      "description": "Triplets with an accented flam on the first note of each beat, followed by two quiet taps. The lead hand changes every beat.",
+      "tips": [
+        "Count it in threes: flam, tap, tap.",
+        "Keep the two taps low and even, so the accented flam stands out.",
+        "The last tap of each group is the next flam's grace note hand; let it stay low."
+      ]
+    },
+    {
+      "id": "drag",
+      "file": "drag.musicxml",
+      "title": "Drag",
+      "family": "drags",
+      "level": 3,
+      "tempo": { "min": 40, "max": 140, "start": 60 },
+      "description": "Two quick grace notes from one hand, played as a soft double stroke, lead into an accented note from the other hand.",
+      "tips": [
+        "Play the two grace notes low and close together, like a small bounce.",
+        "Keep them quieter than the main note, which is accented.",
+        "Practice the grace notes alone first: a soft, even double stroke."
       ]
     }
   ]

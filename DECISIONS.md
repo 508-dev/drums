@@ -294,6 +294,21 @@ M2), validated by our importer, compared against MuseScore 4 reference renders
 (`QT_QPA_PLATFORM=offscreen mscore -o …` works headlessly), and checked by a
 drummer on beta builds.
 
+### Built-In Lessons Are MuseScore Files
+
+Each built-in lesson's source is a MuseScore 4 score
+(`lessons/builtin/<id>.mscz`). The `.musicxml` the app ships, and a
+reference render, are exported from it by `scripts/export-lessons.sh`.
+Writing lessons in the tool teachers use proves the style guide works in
+MuseScore. It keeps every lesson editable by anyone with MuseScore, and
+nobody hand-edits the MusicXML. The
+exports are committed, so CI and the app need no MuseScore. The rule for
+adding or changing a lesson is in `docs/lessons.md`.
+
+The built-in pack holds the rudiments. M2's one-lesson placeholder
+("Quarter notes") moved out; quarter notes return in M3's Timing basics
+pack.
+
 ### Lesson Details Live In `pack.json`
 
 MusicXML holds the notes, not tempo ranges, families, levels, descriptions or
