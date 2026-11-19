@@ -3,7 +3,7 @@ description: Repository conventions for agent edits
 alwaysApply: true
 ---
 
-Read `AGENTS.md` before changing files. Prefer repo scripts over ad hoc
-commands. Keep edits small, update `.env.example` when adding config, and keep
-`.context/` as gitignored workspace-local scratch. Promote durable knowledge
-into tracked docs instead of committing `.context/`.
+Read `AGENTS.md` before changing files. It is the canonical Android development,
+validation, dependency and release policy. Keep `.context/` as gitignored local
+scratch; put durable knowledge in tracked docs. Never create signing keys or
+secrets.

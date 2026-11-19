@@ -1,71 +1,22 @@
-# GitHub Workflows
+# GitHub workflows
 
-508 Devkit separates common GitHub hygiene from team-specific automation.
+| Workflow | Trigger | Result |
+| --- | --- | --- |
+| `ci.yml` | PRs, main pushes, manual | Version-drift check, ktlint, JVM tests, Android lint, debug APK artifact |
+| `pr-title.yml` | PR open/edit/reopen/synchronize | Conventional Commit title check via regex |
+| `release.yml` | main pushes, manual | Groom release PR; after its merge, publish signed GitHub/F-Droid APK when configured |
+| `beta.yml` | non-main branch pushes, delete, manual | Compile beta; publish only with beta secrets; delete stale branch betas |
 
-## Default Files
+Actions are pinned to full commit SHAs copied from the Android convention pack
+and soundboard. `harden-runner` audits egress. Validation uses read-only content
+permissions and checkout without persisted credentials. Release/beta write
+access is limited to the jobs that publish or manage release PRs.
 
-Root `.github/` files are meant to be safe defaults for most repositories:
+Use squash merging with **PR title** as the squash commit subject. The title
+gate protects release-please's version decisions. Release jobs use the `Prod`
+environment; beta never uses it. See [deployment](deployment.md),
+[secrets](secrets.md) and [beta builds](beta-builds.md).
 
-- `.github/PULL_REQUEST_TEMPLATE.md`: prompts for summary, validation, risk, and screenshots.
-- `.github/ISSUE_TEMPLATE/bug_report.yml`: captures reproducible defects.
-- `.github/ISSUE_TEMPLATE/feature_request.yml`: captures product or workflow requests.
-- `.github/ISSUE_TEMPLATE/docs_request.yml`: captures documentation gaps.
-- `.github/ISSUE_TEMPLATE/config.yml`: keeps blank issues allowed and documents where to add discussion links.
-- `.github/workflows/ci.yml`: runs baseline web/tooling, Python stack, and Compose checks.
-
-Keep these templates short. They should improve issue and PR quality without making lightweight collaboration feel bureaucratic.
-
-Workflows pin third-party actions to commit SHAs and use `harden-runner` in audit mode. When applying this devkit, update pinned SHAs intentionally rather than floating back to moving tags.
-
-Plain checkout-and-run validation jobs should usually keep `contents: read` only.
-Do not add `pull-requests: read` unless the job explicitly calls PR APIs or
-posts PR comments.
-
-If path-filtered jobs are used with branch protection, require a final aggregate
-job such as `ci-passed` instead of requiring every skipped job directly.
-When using `dorny/paths-filter` without `pull-requests: read`, set `token: ""`
-and check out enough history so the action uses git-based detection.
-
-## Security Extras
-
-Secret scanning and Dependency Review are extras, not default workflows.
-
-Use `extras/github/gitleaks.yml.example` only when maintainers want CI history
-scanning for secrets and are ready to triage baseline findings or false
-positives.
-
-Use `extras/github/dependency-review.yml.example` only when maintainers want
-GitHub dependency graph-based vulnerability, license, or dependency-change
-reporting.
-
-## Dependency Review
-
-Dependency Review is not part of the default security workflow. It depends on
-GitHub's dependency graph and is best treated as vulnerability, license, and
-dependency-change reporting, not as the primary active supply-chain attack
-detector.
-
-Use `extras/github/dependency-review.yml.example` only when the repo owner wants
-GitHub dependency graph-based reporting. To enable it in a target repo:
-
-1. Enable GitHub's dependency graph for the repository.
-2. Copy `extras/github/dependency-review.yml.example` to `.github/workflows/dependency-review.yml`.
-3. Keep the workflow opt-in; do not gate it on `repository.private == false`.
-
-## CODEOWNERS
-
-Do not enable CODEOWNERS with placeholders. Copy `extras/github/CODEOWNERS.example` to `.github/CODEOWNERS` only after replacing owners with real GitHub users or teams.
-
-Start broad, then make ownership more specific as code ownership becomes real. CODEOWNERS can affect required reviews and branch protection, so stale entries create workflow friction.
-
-## Discussions
-
-Use `extras/github/community/DISCUSSION_TEMPLATE/questions.yml` only when the repository uses GitHub Discussions for support or product feedback.
-
-Discussion templates should be lighter than issue templates. Ask for the question, context, and a minimal example; avoid long pledges or community rules unless the project has an explicit support policy.
-
-## TODO To Issue Automation
-
-Use `extras/todo-to-issue/` only as an opt-in workflow. It can be useful for codebase maintenance, but it grants write permissions and can create issue noise.
-
-Prefer manual runs first. Promote to scheduled or merge-triggered runs only after the team agrees on identifiers, labels, ownership, and whether source files should receive issue links.
+Issue/PR templates and FUNDING remain under `.github/`. Optional CODEOWNERS,
+Discussions, Gitleaks and Dependency Review examples remain in `extras/github/`.
+Do not activate placeholder owners or security gates without maintainer review.

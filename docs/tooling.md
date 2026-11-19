@@ -1,153 +1,45 @@
 # Tooling
 
-The root devkit is language-neutral. Language and runtime conventions live in
-`stacks/`, and optional workflow or deployment add-ons live in `extras/`.
+Kotlin + Jetpack Compose Material 3, Gradle Kotlin DSL, one `:app` module.
+Pins mirror soundboard at M0 (2026-11-19), trimmed to an empty Compose app.
 
-## TypeScript Stack
+| Component | Pin | Location / purpose |
+| --- | --- | --- |
+| AGP | 9.2.0 | Android build plugin |
+| Gradle | 9.4.1 | SHA-256-verified wrapper |
+| Daemon JDK | 25 | `gradle/gradle-daemon-jvm.properties` |
+| JVM bytecode | 17 | `android.compileOptions` |
+| Kotlin / Compose compiler plugin | 2.3.20 | Compose sub-plugin only |
+| Compose BOM | 2026.08.00 | UI and Material 3 versions |
+| Core KTX | 1.19.0 | AndroidX core utilities |
+| Activity Compose | 1.13.0 | Activity/Compose integration |
+| ktlint Gradle plugin | 14.2.0 | Uses bundled ktlint engine |
+| JUnit | 4.13.2 | JVM smoke test only |
+| min / target / compile SDK | 26 / 36 / 37 | Review behavior changes before targeting 37 |
 
-Show Bun first for TypeScript repository tooling. It keeps scripts fast and
-simple, but pnpm is also first-class when a repo or team prefers it.
+Dependencies and plugin pins live in `gradle/libs.versions.toml`. No navigation,
+Media3, Room, DataStore, DI or serialization libraries are added speculatively.
+Renovate applies the existing seven-day release-age policy; lint warnings about
+new versions are not a reason to bump opportunistically.
 
-Required checks for `stacks/typescript`:
+## AGP built-in Kotlin
 
-```bash
-bun run lint
-bun run typecheck
-bun run test
-bun run build
-```
+**AGP 9+ compiles Kotlin itself. Do not apply `org.jetbrains.kotlin.android`**
+(`kotlin-android`) in either Gradle file: doing so is a hard build error.
+`org.jetbrains.kotlin.plugin.compose` still applies separately. JVM target
+comes from `android.compileOptions.targetCompatibility`. See
+<https://developer.android.com/build/migrate-to-built-in-kotlin>.
 
-Use pnpm when a workspace or team wants its monorepo tooling, workspace
-controls, or ecosystem compatibility. The pnpm convention files live in
-`stacks/typescript/pnpm/`.
+The daemon JDK pin is separate from both the wrapper's launcher JDK and the
+app bytecode target. Gradle can provision JDK 25; use a JDK 21 installation to
+launch it if needed. See [development](development.md).
 
-## Python Stack
+## Checks and dependency constraints
 
-Use `uv` for Python installs and execution when the target project selects
-`stacks/python`.
+`scripts/check-all.sh` runs `./gradlew check assembleDebug`; CI additionally
+checks derived version files. `ktlintCheck`, `testDebugUnitTest` and `lintDebug`
+can run individually without an emulator.
 
-Required checks for `stacks/python`:
-
-```bash
-uv sync --locked
-UV_LOCKED=1 uv run ruff check apps packages tests
-UV_LOCKED=1 uv run ruff format --check apps packages tests
-UV_LOCKED=1 uv run mypy
-UV_LOCKED=1 uv run pytest
-```
-
-Keep Python configuration in `pyproject.toml`. The Python stack shows Pydantic
-settings/boundary schemas and Alembic migrations as examples; keep them when
-they fit the target repo and replace them when an existing choice is better.
-
-The Python stack includes example configuration for MyPy, Pyright, Pyrefly, and
-ty, but projects should choose one type checker as the required CI gate.
-Recommended defaults:
-
-- Use Pyrefly for new Python projects that want fast CLI checks and a modern
-  language server, provided the team is comfortable with its monthly release
-  cadence and occasional new diagnostics on upgrade.
-- Use Pyright when the team already standardizes on VS Code/Pylance, wants a
-  mature standards-focused checker, or needs strong cross-editor language
-  server behavior.
-- Keep MyPy when the project relies on MyPy plugins, framework-specific typing
-  behavior, or maximum ecosystem compatibility.
-- Use ty only as an advisory or experimental checker until its beta/0.0.x
-  version policy settles.
-
-When switching the CI gate, update `stacks/python/scripts/typecheck.sh`, add the
-chosen checker to the dev dependency group, and regenerate `uv.lock` with the
-repo's supply-chain cooldown policy in mind.
-
-## Ruby Stack
-
-Use Bundler for Ruby installs and command execution when the target project
-selects `stacks/ruby`.
-
-The Ruby stack is intentionally a convention pack rather than a generated app.
-Copy its `Gemfile.example` to `Gemfile`, generate a project-specific
-`Gemfile.lock` with a compatible Bundler, and add Rails, Rack, Sidekiq, or other
-runtime gems only when the target repo needs them.
-
-Required checks for a typical Ruby project:
-
-```bash
-bundle check
-bundle exec rubocop
-bundle exec rspec
-```
-
-Use Rails or Rack conventions when the target repo already has them. The Ruby
-stack intentionally does not make Rails a root default; it provides scripts that
-adapt to `bin/dev`, Rails, Rack, RSpec, or Minitest-style test directories.
-
-When adding Bundler cooldowns, require Bundler `4.0.13` or newer and pin that
-Bundler version in `Gemfile.lock` before handing off the target repo.
-
-## Android Stack
-
-Use `stacks/android` for native Android (Kotlin + Jetpack Compose) projects.
-Unlike the other stacks, its reusable part is the release/publishing pipeline
-and a set of recurring architecture decisions, not a local-dev script set —
-see `stacks/android/README.md` for the full rationale.
-
-Required checks for `stacks/android`:
-
-```bash
-./gradlew ktlintCheck
-./gradlew testDebugUnitTest
-./gradlew lintDebug
-./gradlew assembleDebug
-```
-
-Track Gradle/Kotlin/Compose/library versions in `gradle/libs.versions.toml`
-in the target repo, not in this devkit — Renovate natively understands Gradle
-version catalogs and opens PRs against it on the repo's normal cooldown,
-which is the expected update path. Don't hand-edit versions opportunistically
-outside of that unless fixing something broken.
-
-**AGP 9+ has built-in Kotlin support.** Do not apply
-`org.jetbrains.kotlin.android` (`kotlin-android`) alongside it — AGP 9.0+
-compiles Kotlin itself, and applying that plugin on top is a hard build
-error, not a warning. See `stacks/android/README.md` for the rest of the
-recurring Android decisions (Compose over Views, no DI framework by default,
-Room vs. a flatter store, SDK level defaults, and the reverse-DNS
-application-ID gotcha).
-
-The GPL-3/free-software-dependency constraint (AndroidX and
-Kotlin-stdlib-class libraries only, no Google Play Services, no Firebase) is
-specific to apps that target F-Droid distribution. Confirm that goal with the
-user before applying it or the F-Droid publishing pipeline — not every
-Android app in this devkit's scope needs either.
-
-## Dependency Safety
-
-Use dependency cooldowns and frozen installs:
-
-- Bun: `bunfig.toml` sets `minimumReleaseAge = 604800` seconds.
-- uv: optional `exclude-newer = "P7D"` only with uv `0.9.17` or newer. Agents
-  must check `uv --no-config --version` before writing relative cooldowns
-  downstream and ask before upgrading old uv installations.
-- pnpm: `pnpm-workspace.yaml` should set `minimumReleaseAge: 10080` minutes.
-- Bundler: `Gemfile` should use
-  `source "https://rubygems.org", cooldown: 7` when Bundler is `4.0.13` or
-  newer.
-- CI should use locked or frozen installs.
-
-Regenerate lockfiles when cooldown settings change so CI validates committed
-pins instead of resolving fresh dependency graphs.
-
-## Workflow Permissions
-
-Keep workflow permissions at `contents: read` unless a job explicitly calls PR
-APIs or posts PR comments.
-
-Dependency Review is opt-in through
-`extras/github/dependency-review.yml.example`, not a default hidden behind a
-repository variable. Do not make it run automatically for all public
-repositories with `github.event.repository.private == false`; that reintroduces
-the dependency graph footgun for public repos where the graph is disabled.
-
-Gitleaks is also opt-in through `extras/github/gitleaks.yml.example`. Add it
-only when maintainers want CI secret scanning and are prepared to triage
-historic findings.
+All shipped dependencies, transitively, must be free software: AndroidX or
+Kotlin-class libraries. No Google Play Services, Firebase or closed-source SDKs.
+No Play Services OSS-license plugin; the future licenses screen is hand-maintained.
