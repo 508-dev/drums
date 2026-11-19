@@ -205,6 +205,45 @@ Frame numbers stay exact across an underrun: the output stream's frame position
 counts frames played, so frame N of what we wrote is still frame N on the
 audio clock, only later in wall time.
 
+### Musical Time Runs On A Tempo Map
+
+The transport measures musical position in quarter notes from the pattern's
+start. The count-in bar sits at negative positions, and loop *k* starts at *k*
+times the pattern length. A tempo map converts between that position and
+output frames in both directions. The map is a chain of constant-tempo
+segments, and every tempo change starts a new segment at the position the old
+one had reached, so position never jumps. Positions are doubles and are never
+accumulated from block to block, so 32nd-note triplets and odd tempos land on
+the first frame at or after their exact time, the same frame whatever the
+block size.
+
+There are two kinds of tempo change, as "Practice Controls" needs:
+
+- The **slider** applies from the start of the next block, within one burst
+  of being moved.
+- The **speed trainer** applies exactly on the loop boundary, even when that
+  boundary falls between two frames.
+
+The UI asks the audio clock which frame is being heard and asks the tempo map
+for the position at that frame. Hit detection (M5) does the same with
+microphone timestamps, which share the clock's time base. When the output
+stream restarts at frame 0 mid-play, the map starts a new epoch and the
+position carries on.
+
+### Playback Yields To Calls And Unplugged Headphones
+
+Pressing play takes audio focus (media usage). Any focus loss stops playback:
+a phone call, another player, or a transient "may duck" loss. A ducked
+metronome is no use to someone keeping time against it. Unplugging the
+headphones (`ACTION_AUDIO_BECOMING_NOISY`) also stops playback, so the click
+never jumps to the loudspeaker. Regaining focus doesn't resume; the player
+presses play again. Focus is given back on stop.
+
+The output stream stays open, playing silence, while the practicing screen is
+shown. Play then starts on a clock that is already running and anchored, and
+stopping lets the last notes ring out. The stream closes when the screen
+leaves.
+
 ### Our Own Notation Renderer, With Bravura
 
 Both views are drawn on a Compose `Canvas` using Bravura, the SMuFL reference
