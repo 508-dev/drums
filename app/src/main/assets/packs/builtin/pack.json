@@ -2,10 +2,100 @@
   "format": 1,
   "id": "builtin",
   "title": "Rudiments",
-  "version": 4,
+  "version": 5,
   "author": "Drums contributors",
   "license": "CC-BY-SA-4.0",
   "lessons": [
+    {
+      "id": "quarter-notes",
+      "file": "quarter-notes.musicxml",
+      "title": "Quarter Notes",
+      "family": "timing",
+      "level": 1,
+      "tempo": {
+        "min": 40,
+        "max": 200,
+        "start": 60
+      },
+      "description": "Play one alternating stroke on every beat.",
+      "tips": [
+        "Count aloud with each click.",
+        "Match the sound of both hands.",
+        "Keep the sticks relaxed between beats."
+      ]
+    },
+    {
+      "id": "eighth-notes",
+      "file": "eighth-notes.musicxml",
+      "title": "Eighth Notes",
+      "family": "timing",
+      "level": 1,
+      "tempo": {
+        "min": 40,
+        "max": 200,
+        "start": 60
+      },
+      "description": "Play two alternating strokes per beat.",
+      "tips": [
+        "Count one and, two and.",
+        "Keep the notes equally spaced.",
+        "Listen for an even sound from both hands."
+      ]
+    },
+    {
+      "id": "triplet-notes",
+      "file": "triplet-notes.musicxml",
+      "title": "Triplet Notes",
+      "family": "timing",
+      "level": 1,
+      "tempo": {
+        "min": 40,
+        "max": 200,
+        "start": 60
+      },
+      "description": "Play three alternating strokes per beat.",
+      "tips": [
+        "Count one trip let for each beat.",
+        "Keep all three notes evenly spaced.",
+        "Notice that the leading hand changes each beat."
+      ]
+    },
+    {
+      "id": "sixteenth-notes",
+      "file": "sixteenth-notes.musicxml",
+      "title": "Sixteenth Notes",
+      "family": "timing",
+      "level": 1,
+      "tempo": {
+        "min": 40,
+        "max": 200,
+        "start": 60
+      },
+      "description": "Play four alternating strokes per beat.",
+      "tips": [
+        "Count one e and a.",
+        "Stay loose as the notes get closer.",
+        "Keep each beat aligned with the click."
+      ]
+    },
+    {
+      "id": "changing-subdivisions",
+      "file": "changing-subdivisions.musicxml",
+      "title": "Changing Subdivisions",
+      "family": "timing",
+      "level": 1,
+      "tempo": {
+        "min": 40,
+        "max": 200,
+        "start": 60
+      },
+      "description": "Move from one to two, three, then four alternating strokes per beat.",
+      "tips": [
+        "Keep the beat steady as the subdivision changes.",
+        "Count each new group before playing.",
+        "Continue alternating hands through each change."
+      ]
+    },
     {
       "id": "single-stroke-roll",
       "file": "single-stroke-roll.musicxml",
@@ -562,6 +652,168 @@
         "Play the two grace notes low and close together, like a small bounce.",
         "Keep them quieter than the main note, which is accented.",
         "Practice the grace notes alone first: a soft, even double stroke."
+      ]
+    },
+    {
+      "id": "single-drag-tap",
+      "file": "single-drag-tap.musicxml",
+      "title": "Single Drag Tap",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Offset doubles place a drag and accent on the second stroke of each pair.",
+      "tips": [
+        "Keep each grace-note double low.",
+        "Listen for the doubles crossing the beat.",
+        "Match the accents on both hands."
+      ]
+    },
+    {
+      "id": "double-drag-tap",
+      "file": "double-drag-tap.musicxml",
+      "title": "Double Drag Tap",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Two dragged notes lead into an accented tap in each triplet.",
+      "tips": [
+        "Practice both drags slowly.",
+        "Keep the final accent in time.",
+        "Give both grace doubles the same sound."
+      ]
+    },
+    {
+      "id": "lesson-25",
+      "file": "lesson-25.musicxml",
+      "title": "Lesson 25",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "In 2/4, a drag and tap lead into an accented note.",
+      "tips": [
+        "Count the short notes before the accent.",
+        "Keep the two grace notes quiet.",
+        "Try the mirrored lead with the practice control."
+      ]
+    },
+    {
+      "id": "single-dragadiddle",
+      "file": "single-dragadiddle.musicxml",
+      "title": "Single Dragadiddle",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A dragged first stroke leads into a paradiddle.",
+      "tips": [
+        "Play the paradiddle alone first.",
+        "Keep the grace notes softer than the main note.",
+        "Let the double set up the other hand."
+      ]
+    },
+    {
+      "id": "drag-paradiddle-1",
+      "file": "drag-paradiddle-1.musicxml",
+      "title": "Drag Paradiddle 1",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "An accented stroke is followed by a dragged paradiddle.",
+      "tips": [
+        "Separate the opening accent from the drag.",
+        "Keep the paradiddle even.",
+        "Practice both leads at a comfortable pace."
+      ]
+    },
+    {
+      "id": "drag-paradiddle-2",
+      "file": "drag-paradiddle-2.musicxml",
+      "title": "Drag Paradiddle 2",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "An accented stroke and an extra drag lead into a dragged paradiddle.",
+      "tips": [
+        "Keep the two drags light.",
+        "Count the change from eighths to sixteenths.",
+        "Keep the final double even."
+      ]
+    },
+    {
+      "id": "single-ratamacue",
+      "file": "single-ratamacue.musicxml",
+      "title": "Single Ratamacue",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A dragged triplet leads to a closing accent.",
+      "tips": [
+        "Count the three triplet notes evenly.",
+        "Save the strongest stroke for the end.",
+        "Make the grace double quiet and clear."
+      ]
+    },
+    {
+      "id": "double-ratamacue",
+      "file": "double-ratamacue.musicxml",
+      "title": "Double Ratamacue",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "An extra dragged note leads into the triplet and closing accent.",
+      "tips": [
+        "Keep both drags light.",
+        "Count the triplet after the first drag.",
+        "Land the final accent without rushing."
+      ]
+    },
+    {
+      "id": "triple-ratamacue",
+      "file": "triple-ratamacue.musicxml",
+      "title": "Triple Ratamacue",
+      "family": "drags",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Three dragged notes lead into the ratamacue and its closing accent.",
+      "tips": [
+        "Practice the three drags slowly.",
+        "Keep the triplet clear after the lead-in.",
+        "Save the accent for the final note."
       ]
     }
   ]

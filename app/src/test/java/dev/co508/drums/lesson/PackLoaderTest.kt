@@ -27,6 +27,11 @@ class PackLoaderTest {
         assertEquals("CC-BY-SA-4.0", pack.manifest.license)
         assertEquals(
             listOf(
+                "quarter-notes",
+                "eighth-notes",
+                "triplet-notes",
+                "sixteenth-notes",
+                "changing-subdivisions",
                 "single-stroke-roll",
                 "single-stroke-four",
                 "single-stroke-seven",
@@ -58,6 +63,15 @@ class PackLoaderTest {
                 "inverted-flam-tap",
                 "flam-drag",
                 "drag",
+                "single-drag-tap",
+                "double-drag-tap",
+                "lesson-25",
+                "single-dragadiddle",
+                "drag-paradiddle-1",
+                "drag-paradiddle-2",
+                "single-ratamacue",
+                "double-ratamacue",
+                "triple-ratamacue",
             ),
             pack.lessons.map { it.id },
         )

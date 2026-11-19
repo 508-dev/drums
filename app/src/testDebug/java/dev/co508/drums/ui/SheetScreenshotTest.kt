@@ -84,6 +84,12 @@ class SheetScreenshotTest {
 
     @Test fun drag() = lesson("drag")
 
+    @Test fun changingSubdivisions() = lesson("changing-subdivisions")
+
+    @Test fun lesson25() = lesson("lesson-25")
+
+    @Test fun doubleRatamacue() = lesson("double-ratamacue")
+
     @Test
     fun museScoreFixtureWithTiesTupletsAndGhostNotes() {
         val notation =
