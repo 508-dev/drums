@@ -2,7 +2,7 @@
   "format": 1,
   "id": "builtin",
   "title": "Rudiments",
-  "version": 2,
+  "version": 3,
   "author": "Drums contributors",
   "license": "CC-BY-SA-4.0",
   "lessons": [
@@ -12,7 +12,11 @@
       "title": "Single Stroke Roll",
       "family": "rolls",
       "level": 1,
-      "tempo": { "min": 40, "max": 200, "start": 80 },
+      "tempo": {
+        "min": 40,
+        "max": 200,
+        "start": 80
+      },
       "description": "Sixteenth notes, one stroke per hand in turn: R L R L. The foundation of every roll and most fills.",
       "tips": [
         "Start each stroke from the same height so both hands sound alike.",
@@ -21,17 +25,39 @@
       ]
     },
     {
-      "id": "double-stroke-open-roll",
-      "file": "double-stroke-open-roll.musicxml",
-      "title": "Double Stroke Open Roll",
+      "id": "single-stroke-four",
+      "file": "single-stroke-four.musicxml",
+      "title": "Single Stroke Four",
       "family": "rolls",
       "level": 2,
-      "tempo": { "min": 40, "max": 180, "start": 60 },
-      "description": "Two strokes per hand, R R L L. Each slashed eighth note is played as two sixteenths with the same hand.",
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 4-stroke phrase of alternating single strokes, ending with an accent and a rest.",
       "tips": [
-        "Make the second stroke of each pair as loud as the first.",
-        "At slow tempos play both strokes from the wrist; let the fingers take over as it speeds up.",
-        "Listen for a steady stream of notes, not pairs."
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "single-stroke-seven",
+      "file": "single-stroke-seven.musicxml",
+      "title": "Single Stroke Seven",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 7-stroke phrase of alternating single strokes, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
       ]
     },
     {
@@ -40,7 +66,11 @@
       "title": "Multiple Bounce Roll",
       "family": "rolls",
       "level": 1,
-      "tempo": { "min": 40, "max": 160, "start": 60 },
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
       "description": "A buzz roll: each hand presses the stick into the head so it bounces several times, and the hands alternate on every eighth note.",
       "tips": [
         "Keep a little pressure in the fingers so each stroke buzzes rather than bounces twice.",
@@ -49,12 +79,214 @@
       ]
     },
     {
+      "id": "triple-stroke-roll",
+      "file": "triple-stroke-roll.musicxml",
+      "title": "Triple Stroke Roll",
+      "family": "rolls",
+      "level": 2,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "Groups of three strokes per hand, alternating right and left, with a short rest between groups.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "double-stroke-open-roll",
+      "file": "double-stroke-open-roll.musicxml",
+      "title": "Double Stroke Open Roll",
+      "family": "rolls",
+      "level": 2,
+      "tempo": {
+        "min": 40,
+        "max": 180,
+        "start": 60
+      },
+      "description": "Two strokes per hand, R R L L. Each slashed eighth note is played as two sixteenths with the same hand.",
+      "tips": [
+        "Make the second stroke of each pair as loud as the first.",
+        "At slow tempos play both strokes from the wrist; let the fingers take over as it speeds up.",
+        "Listen for a steady stream of notes, not pairs."
+      ]
+    },
+    {
+      "id": "five-stroke-roll",
+      "file": "five-stroke-roll.musicxml",
+      "title": "Five Stroke Roll",
+      "family": "rolls",
+      "level": 2,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 5-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "six-stroke-roll",
+      "file": "six-stroke-roll.musicxml",
+      "title": "Six Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 6-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "seven-stroke-roll",
+      "file": "seven-stroke-roll.musicxml",
+      "title": "Seven Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 7-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "nine-stroke-roll",
+      "file": "nine-stroke-roll.musicxml",
+      "title": "Nine Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 9-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "ten-stroke-roll",
+      "file": "ten-stroke-roll.musicxml",
+      "title": "Ten Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 10-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "eleven-stroke-roll",
+      "file": "eleven-stroke-roll.musicxml",
+      "title": "Eleven Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 11-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "thirteen-stroke-roll",
+      "file": "thirteen-stroke-roll.musicxml",
+      "title": "Thirteen Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 13-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "fifteen-stroke-roll",
+      "file": "fifteen-stroke-roll.musicxml",
+      "title": "Fifteen Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 15-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
+      "id": "seventeen-stroke-roll",
+      "file": "seventeen-stroke-roll.musicxml",
+      "title": "Seventeen Stroke Roll",
+      "family": "rolls",
+      "level": 3,
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
+      "description": "A 17-stroke phrase built from same-hand pairs and a closing stroke, ending with an accent and a rest.",
+      "tips": [
+        "Begin slowly and keep the strokes evenly spaced.",
+        "Use relaxed hands and match the sound of both sticks.",
+        "Keep the pulse steady through the rests before repeating."
+      ]
+    },
+    {
       "id": "single-paradiddle",
       "file": "single-paradiddle.musicxml",
       "title": "Single Paradiddle",
       "family": "diddles",
       "level": 2,
-      "tempo": { "min": 40, "max": 180, "start": 70 },
+      "tempo": {
+        "min": 40,
+        "max": 180,
+        "start": 70
+      },
       "description": "Two single strokes and a double, R L R R, then the same starting on the left, L R L L. The first note of each group is accented.",
       "tips": [
         "Play the accent from a higher stick and the other notes low.",
@@ -68,7 +300,11 @@
       "title": "Flam",
       "family": "flams",
       "level": 2,
-      "tempo": { "min": 40, "max": 160, "start": 60 },
+      "tempo": {
+        "min": 40,
+        "max": 160,
+        "start": 60
+      },
       "description": "A quiet grace note just before an accented main note, alternating hands: the grace note is played by the other hand.",
       "tips": [
         "Hold the grace-note stick low and the main stick high, so both land almost together.",
@@ -82,7 +318,11 @@
       "title": "Flam Accent",
       "family": "flams",
       "level": 3,
-      "tempo": { "min": 40, "max": 150, "start": 60 },
+      "tempo": {
+        "min": 40,
+        "max": 150,
+        "start": 60
+      },
       "description": "Triplets with an accented flam on the first note of each beat, followed by two quiet taps. The lead hand changes every beat.",
       "tips": [
         "Count it in threes: flam, tap, tap.",
@@ -96,7 +336,11 @@
       "title": "Drag",
       "family": "drags",
       "level": 3,
-      "tempo": { "min": 40, "max": 140, "start": 60 },
+      "tempo": {
+        "min": 40,
+        "max": 140,
+        "start": 60
+      },
       "description": "Two quick grace notes from one hand, played as a soft double stroke, lead into an accented note from the other hand.",
       "tips": [
         "Play the two grace notes low and close together, like a small bounce.",

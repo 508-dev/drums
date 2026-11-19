@@ -44,3 +44,13 @@ MuseScore only headlessly. Each was:
 
 Opening and re-saving them in MuseScore's editor is the same as editing any
 other score.
+
+## Roll practice phrases
+
+The numbered roll exercises in this pack spell out individual strokes instead
+of using tremolo slashes. They use a closing accent and rests to make the
+beginning and end of each phrase easy to hear. The even-numbered exercises
+end with two single strokes. The single-stroke and triple-stroke exercises
+also separate their groups with rests. These are practice settings, not the
+only possible rhythmic interpretations; the drummer review in #23 should
+check their rhythmic choices, stickings, and accents.

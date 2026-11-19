@@ -70,6 +70,8 @@ class SheetScreenshotTest {
 
     @Test fun multipleBounceRoll() = lesson("multiple-bounce-roll")
 
+    @Test fun fiveStrokeRoll() = lesson("five-stroke-roll")
+
     @Test fun singleParadiddle() = lesson("single-paradiddle")
 
     @Test fun flam() = lesson("flam")
