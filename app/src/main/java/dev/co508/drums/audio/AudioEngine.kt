@@ -95,6 +95,8 @@ data class AudioEngineStats(
     val bufferCapacityFrames: Int,
     /** Whether the system granted a low-latency (fast) track. */
     val lowLatencyGranted: Boolean,
+    /** The output the stream is routed to, such as "speaker" or "wired headphones", if known. */
+    val outputDevice: String?,
     /** Underruns reported by the output stream since [AudioEngine.start]. */
     val underruns: Int,
     val framesRendered: Long,

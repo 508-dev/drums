@@ -176,6 +176,10 @@ SoundPool and ExoPlayer cannot schedule to the sample, so neither is used. The
 engine sits behind an `AudioEngine` interface. Oboe (C++) replaces it only if
 M1's measurements on the reference device, a Sony Xperia 10 VII, fail.
 
+M1 measured it on the Sony (`docs/timing.md`). There were no underruns in 10
+minutes of 32nd notes at 300 BPM with a fast track and the 40 ms buffer, so
+Oboe is not needed.
+
 ### The Mixer Pulls Events, One Block At A Time
 
 Nothing is queued in the engine. Before rendering each block (one device

@@ -2,6 +2,7 @@ package dev.co508.drums.audio
 
 import android.content.Context
 import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTimestamp
@@ -102,6 +103,7 @@ class AudioTrackEngine(
                 bufferSizeFrames = 0,
                 bufferCapacityFrames = 0,
                 lowLatencyGranted = false,
+                outputDevice = null,
                 underruns = 0,
                 framesRendered = 0,
                 mixer = MixerStats(lateEvents = 0, droppedEvents = 0, stolenVoices = 0, peakVoices = 0),
@@ -230,11 +232,28 @@ class AudioTrackEngine(
                 bufferSizeFrames = bufferSizeFrames,
                 bufferCapacityFrames = capacityFrames,
                 lowLatencyGranted = lowLatencyGranted,
+                outputDevice = track.routedDevice?.let(::describe),
                 underruns = underruns,
                 framesRendered = mixer.framesRendered,
                 mixer = mixer.stats(),
                 writeError = writeError,
             )
+    }
+
+    private fun describe(device: AudioDeviceInfo): String {
+        val type =
+            when (device.type) {
+                AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "speaker"
+                AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "earpiece"
+                AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "wired headphones"
+                AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired headset"
+                AudioDeviceInfo.TYPE_USB_HEADSET -> "USB headset"
+                AudioDeviceInfo.TYPE_USB_DEVICE -> "USB device"
+                AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "Bluetooth A2DP"
+                AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "Bluetooth SCO"
+                else -> "type ${device.type}"
+            }
+        return "$type (${device.productName})"
     }
 
     private companion object {
