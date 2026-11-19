@@ -9,6 +9,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.core.content.ContextCompat
 import dev.co508.drums.audio.AudioEngine
 
@@ -30,11 +31,21 @@ class PlaybackSession(
     val transport: Transport,
     val clock: AudioClock,
 ) {
+    enum class StopReason {
+        USER,
+        SCREEN_LEFT,
+        FOCUS_LOSS,
+        FOCUS_TRANSIENT,
+        HEADPHONES_UNPLUGGED,
+        TRANSPORT_FINISHED,
+        ENGINE_ERROR,
+    }
+
     /**
      * Called on the main thread when the system stops playback: focus lost (a
      * call, another player) or headphones unplugged.
      */
-    var onInterrupted: (() -> Unit)? = null
+    var onInterrupted: ((StopReason) -> Unit)? = null
 
     /** Whether this session holds audio focus and is playing (or has finished but not been stopped). */
     var isPlaying = false
@@ -52,9 +63,8 @@ class PlaybackSession(
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build(),
             )
-            // Ask to be told about "may duck" losses instead of being ducked:
-            // a quieter metronome is no use, so we stop.
-            .setWillPauseWhenDucked(true)
+            // Notification pings may briefly auto-duck us, but must not end practice.
+            .setWillPauseWhenDucked(false)
             .setAcceptsDelayedFocusGain(false)
             .setOnAudioFocusChangeListener(::onFocusChange, Handler(Looper.getMainLooper()))
             .build()
@@ -65,7 +75,11 @@ class PlaybackSession(
                 context: Context,
                 intent: Intent,
             ) {
-                if (intent.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) interrupt()
+                if (intent.action ==
+                    AudioManager.ACTION_AUDIO_BECOMING_NOISY
+                ) {
+                    interrupt(StopReason.HEADPHONES_UNPLUGGED)
+                }
             }
         }
 
@@ -79,7 +93,7 @@ class PlaybackSession(
 
     /** Stops playback and releases the output stream. */
     fun close() {
-        stop()
+        stop(StopReason.SCREEN_LEFT)
         engine.stop()
     }
 
@@ -107,7 +121,8 @@ class PlaybackSession(
      * Stops the transport and gives up audio focus. Also call this when the
      * transport reaches [Transport.State.FINISHED]. The stream stays open.
      */
-    fun stop() {
+    fun stop(reason: StopReason = StopReason.USER) {
+        Log.i(TAG, "stop reason=$reason playing=$isPlaying wallTimeMillis=${System.currentTimeMillis()}")
         if (!isPlaying) return
         isPlaying = false
         transport.stop()
@@ -116,20 +131,37 @@ class PlaybackSession(
     }
 
     private fun onFocusChange(focusChange: Int) {
-        if (stopsPlayback(focusChange)) interrupt()
+        Log.i(TAG, "focusChange=$focusChange wallTimeMillis=${System.currentTimeMillis()}")
+        if (stopsPlayback(focusChange)) {
+            interrupt(
+                if (focusChange ==
+                    AudioManager.AUDIOFOCUS_LOSS
+                ) {
+                    StopReason.FOCUS_LOSS
+                } else {
+                    StopReason.FOCUS_TRANSIENT
+                },
+            )
+        }
     }
 
-    private fun interrupt() {
+    /** Called periodically by the foreground practice UI; recovery itself is #51. */
+    fun checkOutput() {
+        if (isPlaying && engine.stats().writeError < 0) interrupt(StopReason.ENGINE_ERROR)
+    }
+
+    private fun interrupt(reason: StopReason) {
         if (!isPlaying) return
-        stop()
-        onInterrupted?.invoke()
+        stop(reason)
+        onInterrupted?.invoke(reason)
     }
 
     companion object {
-        /** Any focus loss stops playback; a metronome is never ducked. Regaining focus doesn't resume. */
+        private const val TAG = "PlaybackSession"
+
+        /** Calls/other players stop playback; notification ducking doesn't. Gaining focus never resumes. */
         fun stopsPlayback(focusChange: Int): Boolean =
             focusChange == AudioManager.AUDIOFOCUS_LOSS ||
-                focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT ||
-                focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK
+                focusChange == AudioManager.AUDIOFOCUS_LOSS_TRANSIENT
     }
 }

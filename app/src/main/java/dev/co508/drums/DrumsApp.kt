@@ -12,8 +12,11 @@ import dev.co508.drums.playback.AudioClock
 import dev.co508.drums.playback.DrumKit
 import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.playback.Transport
+import dev.co508.drums.settings.PracticeSettingsStore
 
 class DrumsApp : Application() {
+    val settings: PracticeSettingsStore by lazy { PracticeSettingsStore(this) }
+
     /**
      * The app's one audio output, transport and clock. Created on first use;
      * the screen that plays opens and closes its stream.

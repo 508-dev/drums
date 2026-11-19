@@ -12,6 +12,7 @@ aren't listed.
 | Kotlin standard library | 2.3.20 | Apache 2.0 | Everything |
 | kotlinx.serialization (JSON) | 1.11.0 | Apache 2.0 | Reading `pack.json` |
 | AndroidX Core, Activity | see `gradle/libs.versions.toml` | Apache 2.0 | App framework |
+| AndroidX DataStore | 1.2.1 | Apache 2.0 | Practice settings and view preference (JSON serializer) |
 | Jetpack Compose (UI, Material 3) | BOM 2026.08.00 | Apache 2.0 | User interface |
 | kotlinx.coroutines (via Compose) | as resolved | Apache 2.0 | Background loading |
 

@@ -76,11 +76,11 @@ class PatternTest {
     }
 
     @Test
-    fun focusLossesStopPlayback() {
+    fun callsAndOtherPlayersStopButNotificationDuckingDoesNot() {
         // Values of AudioManager.AUDIOFOCUS_*: LOSS -1, LOSS_TRANSIENT -2, CAN_DUCK -3, GAIN 1.
         assertTrue(PlaybackSession.stopsPlayback(-1))
         assertTrue(PlaybackSession.stopsPlayback(-2))
-        assertTrue(PlaybackSession.stopsPlayback(-3))
+        assertFalse(PlaybackSession.stopsPlayback(-3))
         assertFalse(PlaybackSession.stopsPlayback(1))
     }
 }
