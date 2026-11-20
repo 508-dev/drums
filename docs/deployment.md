@@ -114,17 +114,25 @@ come from fastlane. Do not set up Play as part of M0.
 
 ## Secrets and one-time maintainer setup
 
-Agents never create signing keys or secrets, run `setup-beta-signing.sh`, push
-tags, create releases or make store submissions during this milestone.
+Agents never create signing keys or secrets, run the signing setup scripts,
+push tags, create releases or make store submissions unless the maintainer
+explicitly asks for that specific action.
 
 1. Enable squash merging with **PR title** as commit message and allow Actions
    to create release PRs. Review branch protection/check names with the maintainer.
 2. The existing beta key was created with slug `drums`; never regenerate it.
    Its alias `drums-beta` and the four existing repo-level `BETA_*` secrets
-   remain valid. The setup helper is human-only; never reuse release keys.
-3. In M4, the maintainer creates a Ratamatap-only release key and backs it up offline,
-   along with passwords. Losing it breaks in-place updates; rotating it also
-   invalidates the self-hosted F-Droid fingerprint. Do not generate one casually.
+   remain valid. Never reuse release keys for betas.
+3. The release key is created once with
+   `scripts/setup-release-signing.sh <slug> --repo <owner/repo>`. The script
+   generates a PKCS12 key, stores it in pass under `508/android/<slug>/` using
+   the exact GitHub secret names, sets the four `RELEASE_*` secrets in the
+   Prod environment, and refuses to replace an existing key. Run
+   `pass git push` afterwards so the key is backed up off the machine. Losing
+   the key breaks in-place updates; rotating it also invalidates the
+   self-hosted F-Droid fingerprint. The Ratamatap key was created on 2026-11-20,
+   with SHA-256 certificate fingerprint
+   `BE:DB:25:35:9D:04:5E:86:E6:1A:79:01:A0:D2:71:6D:F6:44:7E:BF:1E:BD:CB:1F:AC:56:5F:BB:7C:8F:4C:7C`.
 4. Store release secrets and `RELEASE_PLEASE_TOKEN` under the GitHub **Prod
    environment**, matching `environment: Prod` in release.yml. Beta's four
    secrets are **repo-level**, never Prod: arbitrary branch workflows must not

@@ -27,6 +27,12 @@ Without either source, release is unsigned. Debug and credential-free beta
 checks use Android's standard debug key. Never read aloud/commit real properties,
 keystores or secret values; stop if any is staged. See [deployment](deployment.md).
 
+Create the release secrets with `scripts/setup-release-signing.sh ratamatap
+--repo 508-dev/ratamatap` (see its header). It stores the key in pass and sets the
+four `RELEASE_*` secrets in Prod. `RELEASE_PLEASE_TOKEN` is a fine-grained PAT
+created on GitHub; save it in pass, then rerun the script with
+`--release-please-token-only`.
+
 The maintainer backs release material up offline under a password-manager
 convention such as `508/android/ratamatap/RELEASE_KEYSTORE_BASE64` (exact GitHub
 secret names). Losing/changing the release key prevents in-place updates and

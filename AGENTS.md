@@ -53,10 +53,11 @@ timing. Instrumented tests are deferred. Report what was actually tested.
   in `app/build.gradle.kts`; F-Droid parses them textually.
 - Beta-only overrides belong in `androidComponents`, not defaultConfig.
 - Store copy belongs in `fastlane/metadata/android/`; do not duplicate it.
-- **Agents never create signing keys or secrets**, execute
-  `scripts/setup-beta-signing.sh`, push tags, create releases or submit to stores
-  unless the maintainer explicitly authorizes the relevant action. Key/secret
-  creation remains human-only. Release and beta keys must be separate.
+- **Agents never create signing keys or secrets**, run
+  `scripts/setup-release-signing.sh` or `scripts/setup-beta-signing.sh`, push
+  tags, create releases or submit to stores unless the maintainer explicitly
+  asks for that specific action. Keys are never created as a side effect of
+  other work. Release and beta keys must be separate.
 - Never read aloud, print, stage or commit real signing properties, keystores,
   passwords or `RATAMATAP_KEYSTORE_*`, `RATAMATAP_BETA_KEYSTORE_*`, `FDROID_*` values.
 - Google Play is deferred to M7. Do not enable it or a new distribution target
