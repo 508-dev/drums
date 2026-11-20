@@ -35,7 +35,8 @@ don't include it. It shows:
   visual offset (±150 ms), a "300 BPM 32nds" preset and a stats reset.
 
 While playing, it logs a one-line summary every 10 s under the tag
-`RatamatapTiming`.
+`RatamatapTiming`. Its **Microphone (M5)** panel is described in
+[`hit-detection.md`](hit-detection.md).
 
 ## Output-recovery checks (#51)
 

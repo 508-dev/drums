@@ -661,6 +661,92 @@ The mic also hears the app's own click and snare, exactly when the player hits.
   at fast tempos so neighboring notes don't overlap.
 - **Accent detection** comes later.
 
+### Mic Capture: The Rawest Source, The Phone's Own Mic
+
+The detector needs the transient as it hit the mic. Automatic gain control,
+noise suppression and echo cancelling all smear or remove it.
+
+- **Source.** Capture uses UNPROCESSED where the device says it supports it
+  (`PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED`). Otherwise it uses
+  VOICE_RECOGNITION, which the compatibility definition keeps free of gain
+  control, and MIC last. Any gain control, noise suppression or echo
+  cancelling attached to the session is switched off.
+- **Format.** Mono float samples at the output's native rate, or 16-bit
+  converted to float where float capture isn't offered.
+- **Device.** The phone's built-in mic is preferred even when a wired headset
+  has one. The phone sits on the stand near the pad, and one input path keeps
+  calibration per output route meaningful.
+- **Threading.** A capture thread at audio priority reads 4 ms blocks from a
+  100 ms buffer, the same discipline as the mixer: no allocation, no locks.
+  Hits go to the UI through a lock-free single-producer queue. Latency of
+  delivery doesn't matter for scoring, because every hit carries its own
+  timestamp.
+
+The permission is asked for only when the player turns scoring on, with an
+explanation, and practice works without it. In #28 only the debug diagnostics
+screen listens, so `RECORD_AUDIO` is in the debug manifest. The main manifest
+gains it with the scoring toggle in #30, keeping release builds from
+declaring a permission they don't use.
+
+### Mic Timestamps Are Smoothed, Not Trusted Raw
+
+`AudioRecord.getTimestamp(TIMEBASE_MONOTONIC)` gives the capture time of a
+frame on the same clock as the output's `AudioTrack` timestamps. The input
+clock is anchored on those timestamps 10 times a second. Each new timestamp
+moves the anchor a tenth of the way towards itself. That averages away
+jitter (about 0.08 ms mean on the ASUS) while still following drift between
+the two clocks, and a jump of more than 20 ms re-anchors at once.
+
+Where a device gives no input timestamps, the clock estimates them from when
+reads return. Reads only return late, so estimates follow their earliest
+values. The estimates carry the input latency as a constant, which calibration
+removes. A brief gap in real timestamps keeps extrapolating instead of falling
+back, because an estimate's bias would shift every hit.
+
+A hit at mic time T lines up with the output frame heard at T, less the
+calibrated latency. The tempo map then gives its musical position, so hits
+and notes share one clock ("One Audio Clock").
+
+### Onsets: A Rise Gate, An Adaptive Floor And A Constant Fraction
+
+Hits are found in the time domain, in Kotlin, without ML or spectral
+transforms. The steps:
+
+- **Band.** A 24 dB/octave high-pass at **2 kHz**. A stick on a pad is a
+  broadband click; rumble, voices, a drum's ring and its slowly beating low
+  partials all live lower. In tests, 500 Hz let a ringing snare's beating
+  re-trigger; 1.5 kHz and 2 kHz both worked. 2 kHz also leaves room for
+  speaker mode (#32) to pitch the click below the band.
+- **Trigger.** A 0.5 ms power envelope must clear the noise floor by 12 dB
+  (and −70 dBFS). It must also have risen 6 dB above the loudest moment of a
+  3 ms window ending 2 ms earlier. A tail only falls, so it can't trigger, while
+  a stroke 25 ms after an accent (32nds at 300 BPM) or a flam's main note
+  12 ms after its grace still can. The window, not a single point, keeps a
+  tail's beating partials from counting as a rise.
+- **One hit, one onset.** After a trigger the detector waits at least 5 ms and
+  until the envelope falls. Strokes closer than that, such as a "flat" flam,
+  merge into one onset at the first sound. Matching (#30) handles the merge.
+- **Timing.** The onset is where a centred 0.5 ms power envelope first reaches
+  **5%** of the way from the pre-hit level to the peak. The time is
+  interpolated between samples, and dips shorter than the window are bridged
+  so a merged pair reports its start. A constant fraction makes the time
+  independent of how hard the pad was hit. A sweep over window and fraction
+  found low fractions tightest: about 0.1 ms standard deviation over 40 dB of
+  dynamics. The remaining +0.3 ms bias is constant, and calibration absorbs it.
+- **Noise floor.** The floor uses minimum statistics: the quietest moment of a
+  5 ms envelope in each 20 ms block. It drops at once. After a 300 ms warm-up it
+  rises at most 2 dB a second, and not at all within 250 ms of a hit, so
+  continuous playing or a ringing drum can't drag it up into the hits.
+- **Relative gate.** Onsets more than 30 dB below the loudest recent hit
+  (forgotten at 3 dB a second) are dropped. A quiet ASUS in an empty room
+  heard about 5 tonal bursts a second at −53 to −68 dBFS; a ghost note is
+  about 15 dB under an accent. A dropped onset doesn't hold off a real hit
+  just after it.
+
+All of this is tuned on synthetic signals (`docs/hit-detection.md`). The
+numbers are starting points: the maintainer's pad recordings, committed as
+fixtures, confirm or change them.
+
 ## Licensing And Distribution
 
 ### GPL-3.0-only, AGPL-3.0 For Any Future Server
