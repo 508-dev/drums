@@ -50,6 +50,9 @@ class Pattern(
             clicks.all { it.position >= 0.0 && it.position < lengthQuarters },
         ) { "clicks must lie in [0, $lengthQuarters)" }
         require(events.all { it.leadLevel in 0..MAX_LEAD_LEVEL }) { "lead levels run from 0 to $MAX_LEAD_LEVEL" }
+        require(events.map { it.sound.attackFrames }.distinct().size <= 1) {
+            "a pattern's instrument sounds must share one attack offset"
+        }
     }
 
     private val sortedEvents = events.sortedBy { it.position }
@@ -59,6 +62,9 @@ class Pattern(
     internal val eventPans = FloatArray(sortedEvents.size) { sortedEvents[it].pan }
     internal val eventLeadLevels = IntArray(sortedEvents.size) { sortedEvents[it].leadLevel }
     internal val eventDurations = DoubleArray(sortedEvents.size) { sortedEvents[it].durationQuarters }
+
+    /** How far into its sounds the attack is: the transport starts every event this early. */
+    internal val attackFrames = sortedEvents.firstOrNull()?.sound?.attackFrames ?: 0
 
     /** The highest lead level used, so the transport only tracks the windows it needs. */
     internal val maxLeadLevel = sortedEvents.maxOfOrNull { it.leadLevel } ?: 0

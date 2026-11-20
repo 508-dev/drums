@@ -219,6 +219,7 @@ private class DiagnosticsController(
     var lesson by mutableStateOf<Lesson?>(null)
     var leadWithLeft by mutableStateOf(false)
     var graceGapMillis by mutableFloatStateOf(Transport.DEFAULT_GRACE_GAP_MILLIS.toFloat())
+    var extraLeadMillis by mutableFloatStateOf(0f)
 
     var beatsPerMinute by mutableDoubleStateOf(120.0)
     var notesPerBeat by mutableIntStateOf(1)
@@ -329,6 +330,11 @@ private class DiagnosticsController(
         if (playing) play()
     }
 
+    fun changeExtraLead(millis: Float) {
+        extraLeadMillis = millis
+        transport.extraAttackLeadMillis = millis.toDouble()
+    }
+
     fun changeGraceGap(millis: Float) {
         graceGapMillis = millis
         transport.graceGapMillis = millis.toDouble()
@@ -373,6 +379,7 @@ private class DiagnosticsController(
             "lesson=${it.id} leadWithLeft=$leadWithLeft"
         } ?: "notesPerBeat=$notesPerBeat"} " +
             "click=$clickOn snare=$snareOn graceGapMs=${graceGapMillis.roundToInt()} " +
+            "extraLeadMs=${extraLeadMillis.roundToInt()} " +
             "device=${Build.MANUFACTURER} ${Build.MODEL} android=${Build.VERSION.RELEASE}"
 
     private fun log(event: String) {
@@ -617,6 +624,13 @@ private fun Controls(controller: DiagnosticsController) {
             valueRange = 0f..80f,
         )
     }
+
+    Text("Extra snare lead ${controller.extraLeadMillis.roundToInt()} ms (0 = attack on the beat; ear test)")
+    Slider(
+        value = controller.extraLeadMillis,
+        onValueChange = { controller.changeExtraLead(it.roundToInt().toFloat()) },
+        valueRange = 0f..15f,
+    )
 
     Text("Snare notes per beat")
     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {

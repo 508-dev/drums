@@ -515,6 +515,43 @@ its "Ornament check" lesson; it sounded better than the first guess of 30 ms.
 It was judged with the synthesized placeholder snare, so it should be
 checked again once the real samples arrive (#19).
 
+### A Snare's Attack Is On The Beat
+
+The VCSL snare samples (#19) open with a sharp stick transient. Within 1–2 ms
+it reaches 30–40% of the hit's peak amplitude, about 9 dB below it. The drum's
+body then builds to its peak 9–13 ms in, and the snare wires peak later still.
+The transport used to start a sample at the beat, so whatever a listener
+takes as "the hit" landed somewhat late (#83, found by the M5 loopback).
+
+**What counts as the attack** is the perceptual onset: the first moment the
+loudness reaches **−15 dB** of its maximum. Loudness here is power integrated
+over 10 ms, roughly as the ear integrates it (`SampledSounds.perceivedAttack`).
+That threshold rule follows the perceptual-onset studies (Vos and Rasch,
+1981); work on where listeners place the beat of drum sounds puts sharp
+attacks within a few ms of where they physically start. It measures
+**1.8–1.9 ms** for the accent and normal samples and **2.6–2.7 ms** for the
+ghosts.
+
+Aligning the *peak* (or 50% of the maximum, about 9–10 ms) was considered
+and rejected. It would put that clearly audible stick transient about 10 ms
+ahead of the click: a flam with the metronome.
+
+**How it's applied:** at load, each variation is padded in front with silence
+until its measured attack sits exactly **4 ms** in (`Sound.attackFrames`).
+The transport starts every instrument event that much early, through the same
+per-level lead windows that place grace notes, so grace strokes and buzz rolls
+get it too: a roll's bounces are the same padded ghost hits. Clicks are
+synthesized with their attack at sample 0 and stay on the beat. A pattern's
+sounds must share one attack offset. Without a count-in, the very first stroke
+can't start before Play, so it is up to 4 ms late, as a grace note there
+already was.
+
+A JVM test renders every dynamic and variation through the transport and the
+mixer and checks that each is heard within 1 ms of its beat (it measures well
+under 0.1 ms). The debug timing screen's **Extra snare lead** slider moves the
+snare up to 15 ms earlier still. That is an ear test of this choice against
+the M1 sync, like the grace gap's, and the maintainer's verdict is pending.
+
 ### A Lesson Plays As Written
 
 A lesson's `Notation` is expanded (`Expansion`) into a stroke timeline that

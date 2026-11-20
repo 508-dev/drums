@@ -340,6 +340,61 @@ class TransportTest {
     }
 
     @Test
+    fun recordedSoundsStartEarlyByTheirAttackButClicksDont() {
+        // A recorded snare whose attack is 192 frames (4 ms) in, and 30 ms graces.
+        val recorded = Sound("recorded", FloatArray(400), attackFrames = 192)
+        val events = listOf(PatternEvent(1.0, recorded), PatternEvent(1.0, recorded, leadLevel = 1))
+        val pattern = Pattern(4.0, 1.0, 4, events, Pattern.steadyClicks(4.0, 4, 1.0))
+        for (block in listOf(1, 96, 240, 1_024)) {
+            val t = transport()
+            t.graceGapMillis = 30.0
+            t.start(PlaySettings(pattern, beatsPerMinute = 120.0, countIn = false))
+            val d = Driver(t, block)
+            d.runUntil(100_000)
+            // The beat at position 1 is frame 24 000.
+            assertEquals(
+                "block $block",
+                listOf(22_560L - 192, 24_000L - 192),
+                d.ofSound("recorded").map { it.frame }.sorted(),
+            )
+            assertEquals(
+                listOf(0L, 24_000L, 48_000L, 72_000L, 96_000L),
+                d.played
+                    .filter {
+                        it.sound != "recorded"
+                    }.map { it.frame },
+            )
+        }
+    }
+
+    @Test
+    fun anExtraAttackLeadMovesOnlyTheInstrument() {
+        val t = transport()
+        t.extraAttackLeadMillis = 10.0
+        t.start(PlaySettings(strokes(4.0, 1.0), beatsPerMinute = 120.0))
+        val d = Driver(t, 240)
+        d.runUntil(4 * 24_000L + 1)
+        // After the 4-beat count-in, the first stroke is 480 frames (10 ms) early; its click isn't.
+        assertEquals(96_000L - 480, d.ofSound("snare").first().frame)
+        assertEquals(
+            96_000L,
+            d.played
+                .filter { it.sound != "snare" }
+                .last()
+                .frame,
+        )
+    }
+
+    @Test
+    fun aPatternsSoundsShareOneAttack() {
+        val a = Sound("a", FloatArray(10), attackFrames = 2)
+        val b = Sound("b", FloatArray(10), attackFrames = 3)
+        val failure =
+            runCatching { Pattern(1.0, 1.0, 1, listOf(PatternEvent(0.0, a), PatternEvent(0.5, b)), emptyList()) }
+        assertTrue(failure.isFailure)
+    }
+
+    @Test
     fun graceStrokesSoundAFixedTimeBeforeTheirBeat() {
         // 120 BPM: the beat at position 1 is frame 24 000. A 30 ms gap is 1 440 frames.
         for (block in listOf(1, 96, 240, 1_024)) {

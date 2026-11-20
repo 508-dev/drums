@@ -82,10 +82,12 @@ The phone was locked and lying in an empty room, driven over wireless adb:
 
 Two findings:
 
-- **Snare samples peak late.** They start with a small tick and peak 9–13 ms
-  later. Through a phone speaker, the detector times the body, not the tick.
-  Loopback calibration (#29) should therefore use the click, and speaker mode
-  (#32) mutes the snare anyway.
+- **Snare samples peak late.** Their stick transient is heard about 2 ms in,
+  but the drum's body peaks 9–13 ms in and the wires later still. Through a
+  phone speaker and the 2 kHz band, the detector times the later part. #83
+  now starts the samples early so their perceived attack is on the beat
+  (DECISIONS.md, "A Snare's Attack Is On The Beat"). Loopback calibration
+  (#29) uses the click, and speaker mode (#32) mutes the snare anyway.
 - **Rooms tick.** With nothing playing, the mic caught about 5 events a second
   at −53 to −68 dBFS: short tonal bursts at about 7.4 kHz, probably electrical
   whine. These are why the detector drops onsets more than 30 dB below the

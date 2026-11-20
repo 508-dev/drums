@@ -19,3 +19,8 @@ Each original was downmixed from stereo to mono, resampled from 44.1 to
 peak-normalized to 0.8, and faded in over 0.5 ms and out over 10 ms. Output is
 16-bit PCM. The app constructs buzz rolls from the first 30 ms of the ghost
 hits; it does not ship a separate roll recording.
+
+At load the app pads each file with up to 4 ms of silence in front, so that
+its perceived attack (about 1.8–2.7 ms into the shipped file) is exactly 4 ms
+in. The transport then starts it 4 ms early (DECISIONS.md, "A Snare's Attack
+Is On The Beat").

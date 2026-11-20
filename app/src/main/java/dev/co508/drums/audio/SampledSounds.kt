@@ -2,19 +2,80 @@ package dev.co508.drums.audio
 
 import java.io.InputStream
 import kotlin.math.abs
+import kotlin.math.exp
+import kotlin.math.max
+import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /** Decodes the bundled mono PCM files once, away from the mixer thread. */
 object SampledSounds {
+    /**
+     * Where every sampled sound's perceived attack sits: each variation is
+     * padded with silence in front until its measured attack
+     * ([perceivedAttack]) is this far in. Above the latest measured attack
+     * (about 2.7 ms), so all of them share one offset the transport can lead by.
+     */
+    const val ATTACK_MILLIS = 4.0
+
     fun snare(
         layer: String,
         sampleRate: Int,
         open: (String) -> InputStream,
     ): Sound {
-        val first = wav(open("samples/$layer-1.wav"), sampleRate, "$layer-1")
-        val second = wav(open("samples/$layer-2.wav"), sampleRate, "$layer-2")
-        return Sound(layer, first.samples, listOf(second))
+        val attack = attackFrames(sampleRate)
+        val first = aligned(wav(open("samples/$layer-1.wav"), sampleRate, "$layer-1"), sampleRate)
+        val second = aligned(wav(open("samples/$layer-2.wav"), sampleRate, "$layer-2"), sampleRate)
+        return Sound(layer, first.samples, listOf(second), attack)
     }
+
+    fun attackFrames(sampleRate: Int): Int = (ATTACK_MILLIS * sampleRate / 1000).roundToInt()
+
+    /**
+     * Where a recorded hit is heard to start, in (fractional) frames: the first
+     * moment its loudness reaches [ATTACK_THRESHOLD_DB] of its loudest. Loudness
+     * here is power integrated over [LOUDNESS_MILLIS], roughly as the ear
+     * integrates it. A fixed threshold well below the maximum follows the
+     * perceptual-onset studies (Vos and Rasch, 1981): a sharp stick transient is
+     * heard as the attack even when the drum's body peaks 10 ms later. See
+     * DECISIONS.md, "A Snare's Attack Is On The Beat".
+     */
+    fun perceivedAttack(
+        samples: FloatArray,
+        sampleRate: Int,
+    ): Double {
+        val a = 1 - exp(-1000.0 / (LOUDNESS_MILLIS * sampleRate))
+        val loudness = DoubleArray(samples.size)
+        var e = 0.0
+        var loudest = 0.0
+        for (i in samples.indices) {
+            e += a * (samples[i].toDouble() * samples[i] - e)
+            loudness[i] = e
+            loudest = max(loudest, e)
+        }
+        if (loudest == 0.0) return 0.0
+        val threshold = loudest * 10.0.pow(ATTACK_THRESHOLD_DB / 10)
+        val i = loudness.indexOfFirst { it >= threshold }
+        if (i <= 0) return 0.0
+        return i - 1 + (threshold - loudness[i - 1]) / (loudness[i] - loudness[i - 1])
+    }
+
+    /** [sound], padded in front so its perceived attack is [attackFrames] in. */
+    private fun aligned(
+        sound: Sound,
+        sampleRate: Int,
+    ): Sound {
+        val target = attackFrames(sampleRate)
+        val measured = perceivedAttack(sound.samples, sampleRate)
+        check(measured <= target) { "${sound.name}'s attack is ${measured / sampleRate * 1000} ms in" }
+        val pad = (target - measured).roundToInt()
+        val samples = FloatArray(pad + sound.frames)
+        sound.samples.copyInto(samples, pad)
+        return Sound(sound.name, samples, attackFrames = target)
+    }
+
+    private const val LOUDNESS_MILLIS = 10.0
+    private const val ATTACK_THRESHOLD_DB = -15.0
 
     /** Build a deterministic roll from short, differently played sampled bounces. */
     fun buzz(
@@ -33,9 +94,11 @@ object SampledSounds {
             repeat(5 + random.nextInt(4)) {
                 val bounce = bounces[random.nextInt(bounces.size)].samples
                 val start = (t * sampleRate).toInt()
-                val length = minOf(bounce.size, sampleRate * 30 / 1000, samples.size - start)
+                // 30 ms of each bounce from its attack (the padding before it is silent).
+                val length = minOf(bounce.size, ghost.attackFrames + sampleRate * 30 / 1000, samples.size - start)
+                val attack = ghost.attackFrames
                 for (i in 0 until length.coerceAtLeast(0)) {
-                    val fade = 1.0 - i.toDouble() / length
+                    val fade = 1.0 - maxOf(0, i - attack).toDouble() / (length - attack)
                     samples[start + i] += (bounce[i] * level * fade).toFloat()
                 }
                 t += interval * random.nextDouble(0.8, 1.2)
@@ -49,7 +112,8 @@ object SampledSounds {
         if (peak > 0f) for (i in samples.indices) samples[i] *= 0.5f / peak
         val fade = sampleRate / 200
         for (i in 0 until fade) samples[samples.lastIndex - i] *= i.toFloat() / fade
-        return Sound("sampled-buzz", samples)
+        // Every bounce shares the ghost hits' attack offset, so the roll starts on the beat too.
+        return Sound("sampled-buzz", samples, attackFrames = ghost.attackFrames)
     }
 
     internal fun wav(
