@@ -1,0 +1,80 @@
+{
+  "repo": {
+    "timestamp": 1795174545000,
+    "version": 20002,
+    "name": "Ratamatap",
+    "icon": "icon.png",
+    "address": "https://508-dev.github.io/ratamatap/fdroid/repo",
+    "description": "Release builds of Ratamatap, signed with the same key as the APKs attached to its GitHub Releases \u2014 so you can move between the two without uninstalling. Built and published from CI on every tagged release."
+  },
+  "requests": {
+    "install": [],
+    "uninstall": []
+  },
+  "apps": [
+    {
+      "authorEmail": "caleb@508.dev",
+      "authorName": "508.dev",
+      "authorWebSite": "https://508.dev",
+      "categories": [
+        "Multimedia"
+      ],
+      "changelog": "https://github.com/508-dev/ratamatap/releases",
+      "suggestedVersionName": "0.1.0",
+      "suggestedVersionCode": "1000",
+      "issueTracker": "https://github.com/508-dev/ratamatap/issues",
+      "license": "GPL-3.0-only",
+      "sourceCode": "https://github.com/508-dev/ratamatap",
+      "webSite": "https://508.dev",
+      "added": 1795174543000,
+      "packageName": "dev.co508.ratamatap",
+      "lastUpdated": 1795174543000,
+      "localized": {
+        "en-US": {
+          "description": "Ratamatap helps beginners through advanced drummers practice snare-drum\nrudiments on a snare or practice pad.\n\nFollow falling notes in two hand lanes: blue for the left hand and red for the\nright. Switch to sheet music to practice reading notation. Both views stay in\ntime with real snare samples and a metronome.\n\nPractice features:\n\u2022 All 40 standard rudiments, plus Timing basics lessons.\n\u2022 Adjustable tempo, a count-in and looping.\n\u2022 A speed trainer that raises the tempo after a set number of loops.\n\u2022 Separate snare and metronome volume controls.\n\u2022 Lead with the left hand by swapping the sticking.\n\u2022 Favorites, remembered lesson settings and a practice history with the best\n  tempo reached for each lesson.\n\nRatamatap is a play-along practice tool. It does not listen to or score your\nplaying. It works offline, with no ads, accounts or tracking.\n\nThe app is free and open source under GPL-3.0-only. Lesson content is licensed\nunder CC BY-SA 4.0. Snare samples come from the Versilian Community Sample\nLibrary (VCSL), under CC0. Music notation uses Bravura, under the SIL Open Font\nLicense 1.1.\n",
+          "name": "Ratamatap",
+          "phoneScreenshots": [
+            "1.png",
+            "2.png",
+            "3.png",
+            "4.png",
+            "5.png",
+            "6.png"
+          ],
+          "summary": "Practice snare rudiments with falling notes, sheet music and a speed trainer",
+          "whatsNew": "Features:\n\n- add a release signing setup script\n- add diddle and flam rudiment lessons, closes #21\n- add drag and timing lessons, closes #22\n- add library navigation and persistent favorites, closes #15\n- add roll rudiment lessons, closes #20\n- add settings defaults and offline licenses, closes #18\n- AudioEngine with a sample-exact Kotlin AudioTrack mixer, closes #6\n- **audio:** use sampled snare dynamics and buzz rolls\n- complete practice screen and persist lesson settings, closes #16\n- expand "
+        }
+      }
+    }
+  ],
+  "packages": {
+    "dev.co508.ratamatap": [
+      {
+        "added": 1795174543000,
+        "apkName": "ratamatap-0.1.0.apk",
+        "hash": "36a5ad052567a8c36b557470fcf135daa54356dbd662401cfb61edcfa7a76840",
+        "hashType": "sha256",
+        "minSdkVersion": 26,
+        "nativecode": [
+          "arm64-v8a",
+          "armeabi-v7a",
+          "x86",
+          "x86_64"
+        ],
+        "packageName": "dev.co508.ratamatap",
+        "sig": "613ba4a92ed685dff138a8679a442601",
+        "signer": "bedb25359d045e86e61a7901a0d2716df6447ebf1ebdcb1fac565fbb7c8f4c7c",
+        "size": 2315290,
+        "targetSdkVersion": 36,
+        "uses-permission": [
+          [
+            "dev.co508.ratamatap.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION",
+            null
+          ]
+        ],
+        "versionCode": 1000,
+        "versionName": "0.1.0"
+      }
+    ]
+  }
+}

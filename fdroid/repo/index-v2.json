@@ -1,0 +1,128 @@
+{
+  "repo": {
+    "name": {
+      "en-US": "Ratamatap"
+    },
+    "description": {
+      "en-US": "Release builds of Ratamatap, signed with the same key as the APKs attached to its GitHub Releases — so you can move between the two without uninstalling. Built and published from CI on every tagged release."
+    },
+    "icon": {
+      "en-US": {
+        "name": "/icons/icon.png",
+        "sha256": "2a2cb7483e9908b5f3ddab3025d96e4a78759bee0facc3f3826d4e4cd751278d",
+        "size": 849
+      }
+    },
+    "address": "https://508-dev.github.io/ratamatap/fdroid/repo",
+    "timestamp": 1795174545000,
+    "categories": {
+      "Multimedia": {
+        "name": {
+          "en-US": "Multimedia"
+        }
+      }
+    }
+  },
+  "packages": {
+    "dev.co508.ratamatap": {
+      "metadata": {
+        "added": 1795174543000,
+        "categories": [
+          "Multimedia"
+        ],
+        "changelog": "https://github.com/508-dev/ratamatap/releases",
+        "issueTracker": "https://github.com/508-dev/ratamatap/issues",
+        "lastUpdated": 1795174543000,
+        "license": "GPL-3.0-only",
+        "sourceCode": "https://github.com/508-dev/ratamatap",
+        "webSite": "https://508.dev",
+        "screenshots": {
+          "phone": {
+            "en-US": [
+              {
+                "name": "/dev.co508.ratamatap/en-US/phoneScreenshots/1.png",
+                "sha256": "a1d3ba620181546c1eaa60ea1d94659fd8031f2c18f62108eda7ee251df0b17b",
+                "size": 66249
+              },
+              {
+                "name": "/dev.co508.ratamatap/en-US/phoneScreenshots/2.png",
+                "sha256": "12d73c2c5e45257bb7483311bf6a0b4830617469cdadce63e0d3eecce35bb5ea",
+                "size": 96889
+              },
+              {
+                "name": "/dev.co508.ratamatap/en-US/phoneScreenshots/3.png",
+                "sha256": "cd3743cadff26969788a7476ae20ed00ad58f1415f9c258644f7e6a55a5e9109",
+                "size": 80843
+              },
+              {
+                "name": "/dev.co508.ratamatap/en-US/phoneScreenshots/4.png",
+                "sha256": "ed222865bb82660b8b47069c8a41ac6c1097f9f11d2f091b5dde2259a428ed31",
+                "size": 93329
+              },
+              {
+                "name": "/dev.co508.ratamatap/en-US/phoneScreenshots/5.png",
+                "sha256": "13baa3386d10df536dab657b5f406425ffec7520859d5fdd07c1dcb1be99a48c",
+                "size": 51355
+              },
+              {
+                "name": "/dev.co508.ratamatap/en-US/phoneScreenshots/6.png",
+                "sha256": "1e587d8622d7036781ff96648614742f96198f07d40ade2f1165f4af1de9f769",
+                "size": 138272
+              }
+            ]
+          }
+        },
+        "authorEmail": "caleb@508.dev",
+        "authorName": "508.dev",
+        "authorWebSite": "https://508.dev",
+        "name": {
+          "en-US": "Ratamatap"
+        },
+        "summary": {
+          "en-US": "Practice snare rudiments with falling notes, sheet music and a speed trainer"
+        },
+        "description": {
+          "en-US": "Ratamatap helps beginners through advanced drummers practice snare-drum\nrudiments on a snare or practice pad.\n\nFollow falling notes in two hand lanes: blue for the left hand and red for the\nright. Switch to sheet music to practice reading notation. Both views stay in\ntime with real snare samples and a metronome.\n\nPractice features:\n• All 40 standard rudiments, plus Timing basics lessons.\n• Adjustable tempo, a count-in and looping.\n• A speed trainer that raises the tempo after a set number of loops.\n• Separate snare and metronome volume controls.\n• Lead with the left hand by swapping the sticking.\n• Favorites, remembered lesson settings and a practice history with the best\n  tempo reached for each lesson.\n\nRatamatap is a play-along practice tool. It does not listen to or score your\nplaying. It works offline, with no ads, accounts or tracking.\n\nThe app is free and open source under GPL-3.0-only. Lesson content is licensed\nunder CC BY-SA 4.0. Snare samples come from the Versilian Community Sample\nLibrary (VCSL), under CC0. Music notation uses Bravura, under the SIL Open Font\nLicense 1.1.\n"
+        },
+        "preferredSigner": "bedb25359d045e86e61a7901a0d2716df6447ebf1ebdcb1fac565fbb7c8f4c7c"
+      },
+      "versions": {
+        "36a5ad052567a8c36b557470fcf135daa54356dbd662401cfb61edcfa7a76840": {
+          "added": 1795174543000,
+          "file": {
+            "name": "/ratamatap-0.1.0.apk",
+            "sha256": "36a5ad052567a8c36b557470fcf135daa54356dbd662401cfb61edcfa7a76840",
+            "size": 2315290
+          },
+          "manifest": {
+            "nativecode": [
+              "arm64-v8a",
+              "armeabi-v7a",
+              "x86",
+              "x86_64"
+            ],
+            "versionName": "0.1.0",
+            "versionCode": 1000,
+            "usesSdk": {
+              "minSdkVersion": 26,
+              "targetSdkVersion": 36
+            },
+            "signer": {
+              "sha256": [
+                "bedb25359d045e86e61a7901a0d2716df6447ebf1ebdcb1fac565fbb7c8f4c7c"
+              ]
+            },
+            "usesPermission": [
+              {
+                "name": "dev.co508.ratamatap.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+              }
+            ]
+          },
+          "whatsNew": {
+            "en-US": "Features:\n\n- add a release signing setup script\n- add diddle and flam rudiment lessons, closes #21\n- add drag and timing lessons, closes #22\n- add library navigation and persistent favorites, closes #15\n- add roll rudiment lessons, closes #20\n- add settings defaults and offline licenses, closes #18\n- AudioEngine with a sample-exact Kotlin AudioTrack mixer, closes #6\n- **audio:** use sampled snare dynamics and buzz rolls\n- complete practice screen and persist lesson settings, closes #16\n- expand "
+          }
+        }
+      }
+    }
+  }
+}

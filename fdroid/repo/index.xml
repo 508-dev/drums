@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<fdroid>
+	<repo icon="icon.png" name="Ratamatap" pubkey="308204f2308202daa003020102020900aa22ef70eff12a08300d06092a864886f70d01010c050030263110300e060355040a13073530382e6465763112301006035504031309726174616d617461703020170d3236313132303037313532355a180f32303534303430373037313532355a30263110300e060355040a13073530382e6465763112301006035504031309726174616d6174617030820222300d06092a864886f70d01010105000382020f003082020a0282020100d87f9f8124cb1b77ae52638e7620cb3b08736e42b4d389344fde2f9efd9c57dbaa2e790918523ad786bafe04e9c08626dfeec4131ed6153c54d61c36f8bebac5a08d31e1da1367548e206ec9c2e61633d38c53e53cf44f198a92e832be8199da036574a5658aefc72ba44df16cc26fcce04a7992be6736ffca690414129f27bafc866614716ab1b32deecc7cf69ef783515db0b53f27d20c7ab4d83e849b00af119f6df65bf999e365ea4d8e3f260e520fb767b789b4035915e3d18c0846f5679c7dcd191b5b20bf1e6053e5e0c400ab70fab3a1098a68f91e44fb873a50398328d8f310c1e7433698a1a8b3dc45a39dc22d9277ffd504dbd28443e5ba93af9600e3f6c58a4031fa3b0673304c5b35ae17519c9564c2c20bed1a5a6866adec469c78539ab976606cdd4e821b4f3ea9af01bd0b3d5392332f30cd21b49568228f6ef1e3fb15b600e27a03597dce6c4ce93608ad039f132f870cfe0d0b5ccab0e7fe17b93a45e877fa99eb77bd60d9c8e6dc7b40dffc48bafeeda54a5a5ecf4eb5a7406c84735ca13072dbb4196ac43697419ccd30a251cc6f02349333b1a11027c8899dfca54d48740ff7c47a964e6cfa1334f6b48f112ea7b5e32e51d6854f415d987286fa70fb68b316d0436f890ebb0878eeb21d3331752e7ae5288dcb066114735073b767b05d756e2ce5f6024dad535c1dc868004b4af86269d668da3ca90203010001a321301f301d0603551d0e041604148ebf462e1bc20a659d0b07551e44f7d6fd3d04ff300d06092a864886f70d01010c0500038202010084ba652d31790c19d531db616558279d61012186f6f6a6b1d4bff96ba2952cefdbae0b17dbcf64f56fc0326e7922a7fc27110e9c7670e4d8ed12b9cfd4a986c9b5c6e9a7607837b144bd520b0ac778ad2db4b86458ff7c81f436ec9d318ed412dfaa56e170effd1ab8f1d93682fb1b57f9651e00294b8d611af3a55ae28a070dfb24e3b4018fb468fb04002ab5cc302baf76822952325273e6c5a68172da38c798cca22faf64bd31d1b33a4db1583ed69a54ec5e27d46476a0628daf413cf0a1f6dc88c5d440e343b0ccd2737053d7838ed4c4a089b978ac6eba602d226d2d2304e8141d6eb5ab95036707add26f021bf3a72de546d2ed640b125ebd355f82eae2a660e198612b46616c9aaf840913725eb8ebde7b647b58680e2303ec63b4870e3e2d391f64a36241b240aaff7808ef73f973e14bf01192a41aee2a3a72a08a584afed8cfc0cc34414cc9db2104509f001722299a5f050725958a4f947ce0d825d385cc2f1f6203f790e177916364e14a141b03911d6cfdb4d10e028204a117f10860a9583ba6aa1755828397476d72d075f8d171cf52d33a24b037e706dacf426c42973a0f2aa6c254a6f4138f04b3a599e72722f7a9903eaafc54582ca9c0276c6b8b40a43aa4be2457652c479caa8a5dd16c4ac2aa5d8c1313e96a993272708661d7ff05dab079bffdaa5c9f45e607bc074cff20c228319c25b24b560ff3" timestamp="1795174545" url="https://508-dev.github.io/ratamatap/fdroid/repo" version="20002">
+		<description>Release builds of Ratamatap, signed with the same key as the APKs attached to its GitHub Releases — so you can move between the two without uninstalling. Built and published from CI on every tagged release.</description>
+	</repo>
+	<application id="dev.co508.ratamatap">
+		<id>dev.co508.ratamatap</id>
+		<added>2026-11-20</added>
+		<lastupdated>2026-11-20</lastupdated>
+		<name>Ratamatap</name>
+		<summary>Practice snare rudiments with falling notes, sheet music and a speed trainer</summary>
+		<desc>Ratamatap helps beginners through advanced drummers practice snare-drum
+rudiments on a snare or practice pad.
+
+Follow falling notes in two hand lanes: blue for the left hand and red for the
+right. Switch to sheet music to practice reading notation. Both views stay in
+time with real snare samples and a metronome.
+
+Practice features:
+• All 40 standard rudiments, plus Timing basics lessons.
+• Adjustable tempo, a count-in and looping.
+• A speed trainer that raises the tempo after a set number of loops.
+• Separate snare and metronome volume controls.
+• Lead with the left hand by swapping the sticking.
+• Favorites, remembered lesson settings and a practice history with the best
+  tempo reached for each lesson.
+
+Ratamatap is a play-along practice tool. It does not listen to or score your
+playing. It works offline, with no ads, accounts or tracking.
+
+The app is free and open source under GPL-3.0-only. Lesson content is licensed
+under CC BY-SA 4.0. Snare samples come from the Versilian Community Sample
+Library (VCSL), under CC0. Music notation uses Bravura, under the SIL Open Font
+License 1.1.
+</desc>
+		<license>GPL-3.0-only</license>
+		<categories>Multimedia</categories>
+		<category>Multimedia</category>
+		<web>https://508.dev</web>
+		<source>https://github.com/508-dev/ratamatap</source>
+		<tracker>https://github.com/508-dev/ratamatap/issues</tracker>
+		<changelog>https://github.com/508-dev/ratamatap/releases</changelog>
+		<author>508.dev</author>
+		<email>caleb@508.dev</email>
+		<marketversion>0.1.0</marketversion>
+		<marketvercode>1000</marketvercode>
+		<package>
+			<version>0.1.0</version>
+			<versioncode>1000</versioncode>
+			<apkname>ratamatap-0.1.0.apk</apkname>
+			<hash type="sha256">36a5ad052567a8c36b557470fcf135daa54356dbd662401cfb61edcfa7a76840</hash>
+			<size>2315290</size>
+			<sdkver>26</sdkver>
+			<targetSdkVersion>36</targetSdkVersion>
+			<added>2026-11-20</added>
+			<sig>613ba4a92ed685dff138a8679a442601</sig>
+			<permissions>dev.co508.ratamatap.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION</permissions>
+			<nativecode>arm64-v8a,armeabi-v7a,x86,x86_64</nativecode>
+		</package>
+	</application>
+</fdroid>

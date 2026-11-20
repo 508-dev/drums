@@ -1,0 +1,5 @@
+config.yml
+*.keystore
+*.jks
+repo/status/
+!repo/*.apk
