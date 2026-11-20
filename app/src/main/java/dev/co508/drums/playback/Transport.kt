@@ -33,7 +33,9 @@ class PlaySettings(
  * Grace strokes ([PatternEvent.leadLevel] above 0) sound a fixed time before
  * their beat. Each lead level has its own window of positions, running that
  * many grace gaps ahead of the block. Those windows tile the timeline just as
- * the main one does, so every grace stroke plays exactly once.
+ * the clicks' one does, so every grace stroke plays exactly once. Every
+ * instrument window also runs [Pattern.attackFrames] ahead: a sampled snare
+ * starts that early, so its attack, not its first sample, is on the beat.
  *
  * Control methods ([start], [stop], [setTempo], the volumes, the grace gap)
  * may be called from any thread and take effect at the next block. [events]
@@ -69,6 +71,14 @@ class Transport(
     /** How far apart grace strokes are, and how far the last one is before its beat. */
     @Volatile
     var graceGapMillis = DEFAULT_GRACE_GAP_MILLIS
+
+    /**
+     * Starts instrument sounds this much earlier still, on top of their measured
+     * attack ([dev.co508.drums.audio.Sound.attackFrames]). 0 in the app; the
+     * debug screen's ear test of where a snare's attack is heard.
+     */
+    @Volatile
+    var extraAttackLeadMillis = 0.0
 
     /** Updated by the mixer thread, so it runs ahead of what is heard by the output latency. */
     @Volatile
@@ -175,12 +185,16 @@ class Transport(
             }
         }
 
-        emit(playing, 0, windowEnd, end, 0.0, fromFrame, toFrame, sink)
+        emit(playing, CLICKS, windowEnd, end, 0.0, fromFrame, toFrame, sink)
         windowEnd = end
         val gapFrames = graceGapMillis.coerceIn(0.0, MAX_GRACE_GAP_MILLIS) * sampleRate / 1000.0
-        for (level in 1..playing.pattern.maxLeadLevel) {
-            val lead = level * gapFrames
-            // max(): a shrinking gap must not reopen positions already played.
+        // Instrument sounds start early by their attack, so the attack is heard on the beat.
+        val attack =
+            playing.pattern.attackFrames + extraAttackLeadMillis.coerceIn(0.0, MAX_EXTRA_ATTACK_LEAD_MILLIS) *
+                sampleRate / 1000.0
+        for (level in 0..playing.pattern.maxLeadLevel) {
+            val lead = level * gapFrames + attack
+            // max(): a shrinking lead must not reopen positions already played.
             val leadEnd = maxOf(leadWindowEnds[level], tempoMap.positionAt(lastFrame + lead))
             emit(playing, level, leadWindowEnds[level], leadEnd, lead, fromFrame, toFrame, sink)
             leadWindowEnds[level] = leadEnd
@@ -228,7 +242,10 @@ class Transport(
         tempoMap.begin(fromFrame.toDouble(), windowEnd + rate, rate)
     }
 
-    /** Emits the events of one lead level (0 = on the beat, with the clicks) in the window (start, end]. */
+    /**
+     * Emits, in the window (start, end], the clicks ([level] = [CLICKS]) or the
+     * instrument events of one lead level (0 = on the beat), each [leadFrames] early.
+     */
     private fun emit(
         playing: PlaySettings,
         level: Int,
@@ -243,7 +260,7 @@ class Transport(
         val clickGain = clickVolume
         val instrumentGain = instrumentVolume
 
-        if (level == 0 && playing.countIn && start < 0.0 && clickGain > 0f) {
+        if (level == CLICKS && playing.countIn && start < 0.0 && clickGain > 0f) {
             for (m in 0 until pattern.countInBeats) {
                 val position = (m - pattern.countInBeats) * pattern.beatQuarters
                 if (inWindow(position, start, end)) {
@@ -269,7 +286,7 @@ class Transport(
         val lastLoop = if (playing.loop) floor(end / length).toLong() else 0L
         for (k in firstLoop..lastLoop) {
             val base = k * length
-            if (level == 0 && clickGain > 0f) {
+            if (level == CLICKS && clickGain > 0f) {
                 val clicks = pattern.clickPositions
                 var i = scanStart(clicks, start - base)
                 while (i < clicks.size && base + clicks[i] <= end) {
@@ -281,7 +298,7 @@ class Transport(
                     i++
                 }
             }
-            if (instrumentGain > 0f && level <= pattern.maxLeadLevel) {
+            if (level != CLICKS && instrumentGain > 0f) {
                 val positions = pattern.eventPositions
                 var i = scanStart(positions, start - base)
                 while (i < positions.size && base + positions[i] <= end) {
@@ -350,6 +367,8 @@ class Transport(
         /** Chosen by ear on the reference device (DECISIONS.md, "Grace Notes Sound Just Before The Beat"). */
         const val DEFAULT_GRACE_GAP_MILLIS = 12.0
         const val MAX_GRACE_GAP_MILLIS = 150.0
+        const val MAX_EXTRA_ATTACK_LEAD_MILLIS = 30.0
+        private const val CLICKS = -1
         private const val FRAME_EPSILON = 1e-6
         private val NO_TEMPO = Double.NaN.toRawBits()
     }
