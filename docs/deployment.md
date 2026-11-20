@@ -84,7 +84,9 @@ pin that fingerprint rather than trust the URL alone.
 Inputs are `fdroid/config.yml`, `fdroid/metadata/dev.co508.ratamatap.yml` and
 `fastlane/metadata/android/`. The resolved signing config is never committed to
 gh-pages. Enable GitHub Pages from that branch/root after the first publication.
-Store text, release notes and future screenshots live only in fastlane.
+Store text, release notes and screenshots live only in fastlane. Phone screenshots
+are in `fastlane/metadata/android/en-US/images/phoneScreenshots/`; see
+[capture notes](store-screenshots.md) for their provenance and refresh procedure.
 
 ### f-droid.org (M6)
 
