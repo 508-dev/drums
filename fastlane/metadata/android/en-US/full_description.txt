@@ -1,9 +1,23 @@
-Ratamatap is an offline Android app for practicing snare rudiments.
+Ratamatap helps beginners through advanced drummers practice snare-drum
+rudiments on a snare or practice pad.
 
-This early development build shows a placeholder screen only. Lessons,
-animated notation, synchronized drum playback, tempo controls and a practice
-log are planned for v0.1. Microphone hit detection comes in a later release.
+Follow falling notes in two hand lanes: blue for the left hand and red for the
+right. Switch to sheet music to practice reading notation. Both views stay in
+time with real snare samples and a metronome.
 
-The app is free software under GPL-3.0-only, with no ads, analytics or
-proprietary SDKs. The skeleton requests no runtime permissions. The app name and
-application ID are provisional until the first public release.
+Practice features:
+• All 40 standard rudiments, plus Timing basics lessons.
+• Adjustable tempo, a count-in and looping.
+• A speed trainer that raises the tempo after a set number of loops.
+• Separate snare and metronome volume controls.
+• Lead with the left hand by swapping the sticking.
+• Favorites, remembered lesson settings and a practice history with the best
+  tempo reached for each lesson.
+
+Ratamatap is a play-along practice tool. It does not listen to or score your
+playing. It works offline, with no ads, accounts or tracking.
+
+The app is free and open source under GPL-3.0-only. Lesson content is licensed
+under CC BY-SA 4.0. Snare samples come from the Versilian Community Sample
+Library (VCSL), under CC0. Music notation uses Bravura, under the SIL Open Font
+License 1.1.
