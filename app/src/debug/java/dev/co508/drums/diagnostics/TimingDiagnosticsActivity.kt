@@ -52,7 +52,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import dev.co508.drums.DrumsApp
+import dev.co508.drums.hits.CalibrationMethod
 import dev.co508.drums.lesson.AssetPackSource
 import dev.co508.drums.lesson.Expansion
 import dev.co508.drums.lesson.Lesson
@@ -64,7 +66,11 @@ import dev.co508.drums.playback.LessonPattern
 import dev.co508.drums.playback.PlaySettings
 import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.playback.Transport
+import dev.co508.drums.settings.PracticePreferences
+import dev.co508.drums.ui.settings.saveMeasuredCalibration
+import dev.co508.drums.ui.settings.thisPhone
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.Locale
 import kotlin.math.floor
 import kotlin.math.roundToInt
@@ -86,11 +92,14 @@ import kotlin.math.roundToInt
  * the permission if needed) and `--ez play true` plays the subdivision pattern
  * with `--ei bpm`, `--ei notesPerBeat`, `--ez snare`, `--ez click` and, if
  * given, stops after `--ei durationSeconds`. `--ei recordSeconds N --es label L`
- * records the raw mic for N seconds to a WAV file (docs/hit-detection.md).
+ * records the raw mic for N seconds to a WAV file. `--es calibrate LOOPBACK`
+ * (or `TAP_ALONG`) runs the Settings calibration here and saves its result
+ * (docs/hit-detection.md).
  */
 class TimingDiagnosticsActivity : ComponentActivity() {
     private val session: PlaybackSession get() = (application as DrumsApp).playback
     private var mic: MicDiagnostics? = null
+    private var latestPreferences: PracticePreferences? = null
     private val micPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             mic?.onPermissionResult(granted)
@@ -118,8 +127,13 @@ class TimingDiagnosticsActivity : ComponentActivity() {
                 },
                 requestPermission = { micPermission.launch(Manifest.permission.RECORD_AUDIO) },
                 describeRun = controller::describeRun,
+                calibrationMillis = { route ->
+                    latestPreferences?.calibration(thisPhone, route)?.latencyMillis
+                },
             )
+        micTools.saveCalibration = { saveMeasuredCalibration(it, app.settings) }
         mic = micTools
+        lifecycleScope.launch { app.settings.data.collect { latestPreferences = it } }
         session.onInterrupted = { reason ->
             controller.onInterrupted(reason)
         }
@@ -139,6 +153,13 @@ class TimingDiagnosticsActivity : ComponentActivity() {
                 click = intent.getBooleanExtra(EXTRA_CLICK, true),
                 seconds = intent.getIntExtra(EXTRA_DURATION_SECONDS, 0),
                 recordSeconds = intent.getIntExtra(EXTRA_RECORD_SECONDS, 0),
+                calibrate =
+                    intent.getStringExtra(EXTRA_CALIBRATE)?.let { name ->
+                        CalibrationMethod.entries.firstOrNull {
+                            it.name ==
+                                name
+                        }
+                    },
                 label = intent.getStringExtra(EXTRA_LABEL),
             )
         setContent {
@@ -185,6 +206,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         const val EXTRA_CLICK = "click"
         const val EXTRA_RECORD_SECONDS = "recordSeconds"
         const val EXTRA_LABEL = "label"
+        const val EXTRA_CALIBRATE = "calibrate"
         const val DEFAULT_EXIT_TEST_SECONDS = 600
         const val DEBUG_PACK_FOLDER = "packs/debug"
 
@@ -208,6 +230,7 @@ private data class ScriptedRun(
     val seconds: Int,
     val recordSeconds: Int,
     val label: String?,
+    val calibrate: CalibrationMethod?,
 )
 
 private class DiagnosticsController(
@@ -459,6 +482,7 @@ private fun DiagnosticsScreen(
         if (scripted.listen) mic.toggle()
         if (scripted.recordSeconds > 0) mic.startRecording(scripted.recordSeconds.toDouble(), scripted.label)
         if (scripted.play) controller.runScripted(scripted)
+        scripted.calibrate?.let { mic.calibrate(it, scope) }
     }
     LaunchedEffect(Unit) {
         if (exitTestSeconds > 0) controller.runExitTest(exitTestSeconds)

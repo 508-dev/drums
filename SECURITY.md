@@ -4,8 +4,11 @@ Report vulnerabilities privately to **caleb@508.dev**, not a public issue.
 Include affected commit/version, reproduction steps and impact; omit passwords,
 keystores and personal device data. Security support currently targets `main`.
 
-The skeleton requests no dangerous runtime permissions and has no network or
-recording code. AndroidX adds an app-private signature permission for receivers.
+The app has no network code or permission. Its one dangerous runtime permission
+is the microphone (`RECORD_AUDIO`, from v0.2.0), for hit detection. It is asked
+for only when the player calibrates or scores, and the audio is analysed in
+memory and never stored or sent; only debug builds can save raw mic recordings,
+to app storage. AndroidX adds an app-private signature permission for receivers.
 Later imports must treat files as untrusted input. Shipped dependencies must
 be free software; no telemetry, ads or proprietary SDKs are allowed.
 

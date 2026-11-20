@@ -129,4 +129,6 @@ data class AudioEngineStats(
     val recoveries: Int = 0,
     val lastWriteError: Int = 0,
     val lastRecoveryReason: String? = null,
+    /** The output's route, for per-route calibration, if known. */
+    val outputRoute: OutputRoute? = null,
 )

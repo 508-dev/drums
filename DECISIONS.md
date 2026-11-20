@@ -719,11 +719,11 @@ noise suppression and echo cancelling all smear or remove it.
   delivery doesn't matter for scoring, because every hit carries its own
   timestamp.
 
-The permission is asked for only when the player turns scoring on, with an
-explanation, and practice works without it. In #28 only the debug diagnostics
-screen listens, so `RECORD_AUDIO` is in the debug manifest. The main manifest
-gains it with the scoring toggle in #30, keeping release builds from
-declaring a permission they don't use.
+The permission is asked for only when the player calibrates or turns scoring
+on, with an explanation, and practice works without it. In #28 only the debug
+diagnostics screen listened, so `RECORD_AUDIO` was in the debug manifest. It
+moved to the main manifest with calibration (#29), the first shipped feature
+to use the mic.
 
 ### Mic Timestamps Are Smoothed, Not Trusted Raw
 
@@ -783,6 +783,43 @@ transforms. The steps:
 All of this is tuned on synthetic signals (`docs/hit-detection.md`). The
 numbers are starting points: the maintainer's pad recordings, committed as
 fixtures, confirm or change them.
+
+### Calibration Per Output Route
+
+Output and input timestamps put a hit on the output clock, but not exactly.
+What they leave out can be anywhere from a millisecond (wired) to 200 ms
+(Bluetooth): converters, mic and speaker processing, air, latency a headset
+doesn't report, and the player's ear. Calibration measures it once and
+`HitTimeline.latencyNanos` takes it off every hit.
+
+- **Per route, per phone.** The engine reports the output route: the speaker,
+  wired (one route for any analog jack), each Bluetooth device by name, or
+  each USB device. A calibration is stored for *phone model + route* in the
+  practice settings. They are backed up, and a phone restored from another
+  phone's backup must not inherit that phone's delays.
+- **Speaker: automatic loopback.** After a silent count-in bar, the phone
+  plays 16 sharp 3 ms noise-burst clicks at 100 BPM and listens to itself. The
+  click is broadband so the 2 kHz detector hears it well; the metronome's
+  click is pitched. The delay is the earliest one that 75% of the clicks agree
+  on to within 2 ms, averaged over those clicks. A first version took each
+  click's earliest sound instead, and the ASUS's room ticks (about 5 a second)
+  landed before the click often enough to fail one run in three. On the ASUS,
+  three consecutive runs measured 35.03, 34.97 and 34.92 ms, each with about
+  0.1 ms of spread. Applying the result brought the click loopback's offsets
+  to −0.08 ms. Loopback can't see the air between the phone and the player,
+  or the player's ear, so speaker scoring stays best-effort.
+- **Any output: tap-along.** After a count-in, the player hits the pad on 16
+  metronome clicks at 80 BPM. Each tap belongs to the nearest click within
+  half a beat (so up to 375 ms of Bluetooth delay maps correctly), and the
+  first tap per click counts. The result is the median of taps within three
+  robust spreads of it. A run needs 10 usable taps with a robust spread of at
+  most 25 ms, or it asks to try again. This measures everything at once,
+  including the player's habit of anticipating, which is what scoring should
+  compare against.
+- It lives in **Settings → Hit timing calibration**. The screen opens the
+  output (to know the route), asks for the microphone only on Start, and shows
+  this phone's saved calibrations with Forget. The speaker check is offered
+  only on the speaker; tap-along is always offered.
 
 ## Licensing And Distribution
 

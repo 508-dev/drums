@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import dev.co508.drums.lesson.PackResult
 import dev.co508.drums.ui.library.LibraryScreen
 import dev.co508.drums.ui.practice.PracticeScreen
+import dev.co508.drums.ui.settings.CalibrationScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -62,7 +63,12 @@ private fun DrumsScreen(app: DrumsApp) {
                         result.errors.forEach { Text(it) }
                     }
                 is PackResult.Success -> {
-                    LibraryScreen(listOf(result.pack), app.settings, app.history) { lesson, onBack ->
+                    LibraryScreen(
+                        listOf(result.pack),
+                        app.settings,
+                        app.history,
+                        calibration = { CalibrationScreen(app.playback, app.mic, app.settings) },
+                    ) { lesson, onBack ->
                         PracticeScreen(lesson, app.playback, app.kit, app.settings, onBack = onBack)
                     }
                 }

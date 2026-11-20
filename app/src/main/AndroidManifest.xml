@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+        Hit detection (M5): asked for at runtime only when the player calibrates or
+        turns scoring on, with an explanation. Audio stays on the phone.
+    -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:name=".DrumsApp"
         android:allowBackup="true"

@@ -60,6 +60,10 @@ class LibraryRouteTest {
             LibraryDestination.SETTINGS,
             practice.copy(destination = LibraryDestination.ABOUT).back().destination,
         )
+        assertEquals(
+            LibraryDestination.SETTINGS,
+            practice.copy(destination = LibraryDestination.CALIBRATION).back().destination,
+        )
         assertEquals(LibraryRoute("pack", Family.TIMING), practice.back())
         assertEquals(LibraryRoute("pack"), practice.back().back())
         assertEquals(LibraryRoute(), practice.back().back().back())

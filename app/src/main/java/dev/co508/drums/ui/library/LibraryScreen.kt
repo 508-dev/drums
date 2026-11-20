@@ -56,6 +56,7 @@ fun LibraryScreen(
     packs: List<Pack>,
     store: PracticeSettingsStore,
     history: PracticeHistory,
+    calibration: @Composable () -> Unit = {},
     practice: @Composable (Lesson, () -> Unit) -> Unit,
 ) {
     var preferences by remember { mutableStateOf<PracticePreferences?>(null) }
@@ -84,6 +85,7 @@ fun LibraryScreen(
         onDefaults = store::saveDefaults,
         appVersion = version,
         history = { HistoryScreen(history, packs) },
+        calibration = calibration,
         message = readError ?: writeError ?: if (preferences == null) "Loading saved preferences…" else null,
         onRetry = if (readError != null) ({ retry++ }) else null,
         practice = practice,
@@ -103,6 +105,7 @@ internal fun LibraryNavigation(
     onDefaults: (AppDefaults) -> Unit = {},
     appVersion: String = "unknown",
     history: @Composable () -> Unit = { HistoryContent(HistoryData(), packs) },
+    calibration: @Composable () -> Unit = {},
     practice: @Composable (Lesson, () -> Unit) -> Unit,
 ) {
     var savedRoute by rememberSaveable(stateSaver = LibraryRoute.Saver) { mutableStateOf(LibraryRoute()) }
@@ -128,6 +131,7 @@ internal fun LibraryNavigation(
                         LibraryDestination.SETTINGS -> "Settings"
                         LibraryDestination.ABOUT -> "About"
                         LibraryDestination.LICENSES -> "Licenses and credits"
+                        LibraryDestination.CALIBRATION -> "Hit timing calibration"
                         null -> route.family?.title ?: pack?.manifest?.title ?: "Library"
                     }
                 Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -157,9 +161,14 @@ internal fun LibraryNavigation(
             onRetry?.let { TextButton(onClick = it) { Text("Retry") } }
             when (route.destination) {
                 LibraryDestination.SETTINGS ->
-                    SettingsContent(preferences.defaults, preferencesReady, onDefaults) {
-                        savedRoute = route.copy(destination = LibraryDestination.ABOUT)
-                    }
+                    SettingsContent(
+                        preferences.defaults,
+                        preferencesReady,
+                        onDefaults,
+                        onAbout = { savedRoute = route.copy(destination = LibraryDestination.ABOUT) },
+                        onCalibration = { savedRoute = route.copy(destination = LibraryDestination.CALIBRATION) },
+                    )
+                LibraryDestination.CALIBRATION -> calibration()
                 LibraryDestination.ABOUT ->
                     AboutContent(appVersion) {
                         savedRoute = route.copy(destination = LibraryDestination.LICENSES)

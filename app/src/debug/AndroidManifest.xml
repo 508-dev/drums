@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Debug builds only: the M1 timing diagnostics screen, with its own launcher entry. -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!--
-        M5 (#28): the diagnostics screen's microphone tools. Asked for at runtime only
-        when "Listen" is pressed. Release builds gain it with scoring itself (#30).
-    -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application>
         <!--
             Handles rotation itself, so a long timing run isn't restarted by turning the phone.
