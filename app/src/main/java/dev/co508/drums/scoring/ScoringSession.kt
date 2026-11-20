@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * One scored run: listens with the [mic], places each hit on the shared clock
@@ -22,8 +23,10 @@ import kotlinx.coroutines.launch
  * coroutine, never on the audio or capture threads; the UI only reads
  * [snapshot]. See DECISIONS.md, "Matching Hits To Notes".
  *
- * [start] at Play, [stop] at Stop: the session keeps listening a moment
- * longer, so the last notes' hits still arrive, then closes the microphone.
+ * [start] at Play, [stop] at Stop (or on leaving the screen): the session
+ * keeps listening a moment longer, so the last notes' hits still arrive,
+ * reports the result and closes the microphone. It runs in an application
+ * scope, so leaving the screen doesn't lose the run's score.
  */
 class ScoringSession(
     private val mic: MicCapture,
@@ -65,6 +68,8 @@ class ScoringSession(
         strictness: Strictness,
         loops: Boolean,
         latencyMillis: Double,
+        /** Called on the main thread with the final snapshot, once the run is decided (not if cut off). */
+        onFinished: (ScoringSnapshot) -> Unit = {},
     ): Boolean {
         stopNow()
         timeline.latencyNanos = (latencyMillis * NANOS_PER_MILLI).toLong()
@@ -85,7 +90,9 @@ class ScoringSession(
                         if (stopAt != 0L && nanoTime() - stopAt >= settleNanos()) {
                             val stopFrame = clock.frameAt(stopAt - timeline.latencyNanos)
                             matcher.finish(stopFrame, settledFrame(), map, gap)
-                            snapshot = matcher.snapshot()
+                            val final = matcher.snapshot()
+                            snapshot = final
+                            withContext(Dispatchers.Main) { onFinished(final) }
                             break
                         }
                         matcher.advance(settledFrame(), map, gap)

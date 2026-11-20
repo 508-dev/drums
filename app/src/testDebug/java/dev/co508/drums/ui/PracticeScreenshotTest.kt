@@ -99,11 +99,18 @@ class PracticeScreenshotTest {
                     scoring = true,
                     onScoring = { scoring = it },
                     scoringNote = "Phone speaker isn't calibrated: Settings → Calibrate hit timing.",
+                    runSummary =
+                        listOf(
+                            "86% in window (62% green) · 3 missed · 2 extras",
+                            "Average +6.2 ms (dragging) · spread ±11.4 ms",
+                            "Left +12.0 ms, 2 missed · Right +1.1 ms",
+                        ),
                 )
             }
         }
         compose.onNodeWithText("Phone speaker isn't calibrated: Settings → Calibrate hit timing.").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Score my playing").performClick()
+        compose.onNodeWithText("Last scored run").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Score my playing").performScrollTo().performClick()
         assertEquals(false, scoring)
         compose.onRoot().captureRoboImage("src/testDebug/screenshots/practice-scoring.png")
     }

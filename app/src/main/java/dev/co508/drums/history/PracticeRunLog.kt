@@ -13,6 +13,9 @@ class PracticeRunLog(
     private var active: PracticeRecord? = null
     private var startedNanos = 0L
 
+    /** The running session's ID, for results attached to it (a score); null between runs. */
+    val activeId: String? get() = active?.id
+
     fun start(
         identity: PracticeIdentity,
         tempo: Double,

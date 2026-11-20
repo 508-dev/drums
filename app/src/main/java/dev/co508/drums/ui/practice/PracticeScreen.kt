@@ -44,7 +44,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import dev.co508.drums.history.PracticeHistory
 import dev.co508.drums.history.PracticeIdentity
+import dev.co508.drums.history.SessionScore
 import dev.co508.drums.lesson.Expansion
 import dev.co508.drums.lesson.Hand
 import dev.co508.drums.lesson.Lesson
@@ -59,12 +61,14 @@ import dev.co508.drums.scoring.ScoredLesson
 import dev.co508.drums.scoring.ScoringSession
 import dev.co508.drums.scoring.ScoringSnapshot
 import dev.co508.drums.scoring.Strictness
+import dev.co508.drums.scoring.toSessionScore
 import dev.co508.drums.settings.LessonPreferences
 import dev.co508.drums.settings.PracticePreferences
 import dev.co508.drums.settings.PracticeSettingsStore
 import dev.co508.drums.settings.preferenceKey
 import dev.co508.drums.ui.falling.FallingNotesLayout
 import dev.co508.drums.ui.falling.FallingNotesView
+import dev.co508.drums.ui.history.scoreLines
 import dev.co508.drums.ui.settings.thisPhone
 import dev.co508.drums.ui.sheet.SheetView
 import java.io.IOException
@@ -79,6 +83,7 @@ fun PracticeScreen(
     store: PracticeSettingsStore,
     onBack: () -> Unit,
     scoring: ScoringSession? = null,
+    history: PracticeHistory? = null,
 ) {
     var initial by remember(lesson.preferenceKey) { mutableStateOf<PracticePreferences?>(null) }
     var loadError by remember { mutableStateOf(false) }
@@ -93,7 +98,8 @@ fun PracticeScreen(
     }
     DisposableEffect(session) {
         onDispose {
-            scoring?.stopNow()
+            // Finishes in the background, so the run's score is still saved.
+            scoring?.stop()
             session.close()
         }
     }
@@ -122,6 +128,7 @@ fun PracticeScreen(
     var explainMic by remember { mutableStateOf(false) }
     var scoringNote by remember { mutableStateOf<String?>(null) }
     var scoredRun by remember { mutableStateOf(false) }
+    var lastScore by remember(lesson.preferenceKey) { mutableStateOf<SessionScore?>(null) }
     val micPermission =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             scoringOn = granted
@@ -268,9 +275,25 @@ fun PracticeScreen(
                 if (session.isPlaying && scoringOn && scoring != null) {
                     val route = session.engine.stats().outputRoute
                     val calibration = route?.let { loaded.calibration(thisPhone, it) }
+                    val runId = session.runId
+                    val strictness = Strictness.of(loaded.strictness)
+                    lastScore = null
                     scoredRun =
                         micGranted(context) &&
-                        startScoring(scoring, timeline, loaded, playSettings.loop, calibration?.latencyMillis ?: 0.0)
+                        startScoring(
+                            scoring,
+                            timeline,
+                            strictness,
+                            playSettings.loop,
+                            calibration?.latencyMillis ?: 0.0,
+                        ) { final ->
+                            val stats = final.stats
+                            if (runId != null && stats.hits + stats.misses > 0) {
+                                val score = stats.toSessionScore(runId, strictness, route?.key, calibration != null)
+                                history?.recordScore(score)
+                                lastScore = score
+                            }
+                        }
                     scoringNote =
                         when {
                             !scoredRun -> "Couldn't open the microphone; this run isn't scored."
@@ -299,6 +322,7 @@ fun PracticeScreen(
             },
         scoringNote = scoringNote,
         marks = { if (scoringOn || scoredRun) scoring?.snapshot else null },
+        runSummary = if (playing) null else lastScore?.let { scoreLines(it) },
         onBack = {
             session.stop()
             onBack()
@@ -337,6 +361,7 @@ internal fun PracticeContent(
     onScoring: ((Boolean) -> Unit)? = null,
     scoringNote: String? = null,
     marks: () -> ScoringSnapshot? = { null },
+    runSummary: List<String>? = null,
 ) {
     val timeline = remember(lesson, settings.leadWithLeft) { Expansion.expand(lesson.notation, settings.leadWithLeft) }
     val layout = remember(timeline) { FallingNotesLayout.from(timeline) }
@@ -385,6 +410,7 @@ internal fun PracticeContent(
             scoring,
             onScoring,
             scoringNote,
+            runSummary,
         )
         TextButton(onClick = { tipsExpanded = !tipsExpanded }) {
             Text(if (tipsExpanded) "Hide description and tips" else "Description and tips")
@@ -441,6 +467,21 @@ internal fun PracticeContent(
     }
 }
 
+/** The last scored run, under the controls until the next Play (DECISIONS.md, "Run Summaries In The Practice Log"). */
+@Composable
+internal fun RunSummaryCard(lines: List<String>) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(12.dp),
+    ) {
+        Text("Last scored run", style = MaterialTheme.typography.titleSmall)
+        lines.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+    }
+}
+
 private fun micGranted(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
@@ -449,10 +490,11 @@ private fun micGranted(context: Context): Boolean =
 private fun startScoring(
     scoring: ScoringSession,
     timeline: StrokeTimeline,
-    preferences: PracticePreferences,
+    strictness: Strictness,
     loops: Boolean,
     latencyMillis: Double,
-): Boolean = scoring.start(ScoredLesson.from(timeline), Strictness.of(preferences.strictness), loops, latencyMillis)
+    onFinished: (ScoringSnapshot) -> Unit,
+): Boolean = scoring.start(ScoredLesson.from(timeline), strictness, loops, latencyMillis, onFinished)
 
 /** The sheet must show the same swapped grace and main hands as the expanded playback. */
 internal fun Notation.forDisplay(leadWithLeft: Boolean): Notation =
