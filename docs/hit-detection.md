@@ -124,6 +124,23 @@ calibrations measured 35.03, 34.97 and 34.92 ms, each with about 0.1 ms of
 spread. With the result applied, the click loopback's offsets centred on
 −0.08 ms (22 clicks).
 
+## Speaker mode over adb
+
+`--ez speakerMode true` gives the timing screen speaker mode: the low click,
+the snare muted and the speaker-mode detector. Listening while the click plays
+through the speaker shows whether the mic still hears it:
+
+```bash
+$ADB shell am start -n $A --ez listen true --ez play true --ei bpm 100 \
+    --ez snare false --ez click true --ez speakerMode true --ei durationSeconds 15
+$ADB logcat -s RatamatapHits | grep "hit "    # offsetMs≈0 would be the click
+```
+
+On the ASUS, the usual click came back at every beat, but the speaker-mode
+click didn't, at media volumes 12, 20 and 30 out of 30 (DECISIONS.md, "Speaker
+Mode"). With `--es score <lesson>` added, a scored run logs the click guard's
+learned leak and the echoes it dropped.
+
 ## Scored runs over adb
 
 ```bash

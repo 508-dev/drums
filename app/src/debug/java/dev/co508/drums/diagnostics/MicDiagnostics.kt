@@ -33,6 +33,7 @@ import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.scoring.NoteMark
 import dev.co508.drums.scoring.ScoredLesson
 import dev.co508.drums.scoring.ScoringSession
+import dev.co508.drums.scoring.SpeakerMode
 import dev.co508.drums.scoring.Strictness
 import dev.co508.drums.ui.settings.resultText
 import kotlinx.coroutines.CoroutineScope
@@ -171,6 +172,15 @@ internal class MicDiagnostics(
 
     var scoring: ScoringSession? = null
 
+    var speakerMode: SpeakerMode? = null
+
+    /** Speaker mode for adb checks: the low click, snare muted, and the speaker-mode detector. */
+    fun enterSpeakerMode() {
+        speakerMode?.enter()
+        mic.detectorConfig = SpeakerMode.DETECTOR
+        Log.i(HITS_TAG, "speaker mode on")
+    }
+
     /**
      * Scores the lesson now playing (adb: `--es score <lesson>`), with the
      * current route's calibration, and logs its totals every few seconds and
@@ -185,28 +195,48 @@ internal class MicDiagnostics(
         val session = scoring ?: return
         if (!hasPermission()) return
         if (mic.isRunning) stop()
-        val route =
-            this.session.engine
-                .stats()
-                .outputRoute
-        val latency = route?.let(calibrationMillis) ?: 0.0
-        val started = session.start(ScoredLesson.from(timeline), Strictness.STANDARD, true, latency)
-        Log.i(HITS_TAG, "score start=$started route=${route?.key} latencyMs=$latency")
         scope.launch {
-            while (isPlaying()) {
-                delay(3_000)
-                Log.i(HITS_TAG, "score progress ${session.snapshot.stats}")
-            }
-            session.stop()
-            while (session.isListening) delay(50)
-            val snapshot = session.snapshot
-            val hits = snapshot.marks.flatten().filter { it.kind == NoteMark.Kind.HIT }
-            Log.i(HITS_TAG, "score done ${snapshot.stats}")
-            Log.i(
-                HITS_TAG,
-                "score offsets " + hits.takeLast(24).joinToString { "%.1f".format(Locale.ROOT, it.offsetMillis) },
-            )
+            // The mixer thread publishes the playing settings at its next block.
+            while (this@MicDiagnostics.session.transport.settings == null) delay(5)
+            val route =
+                this@MicDiagnostics
+                    .session.engine
+                    .stats()
+                    .outputRoute
+            val latency = route?.let(calibrationMillis) ?: 0.0
+            val clicks =
+                if (speakerMode?.isActive ==
+                    true
+                ) {
+                    this@MicDiagnostics
+                        .session.transport.settings
+                        ?.pattern
+                } else {
+                    null
+                }
+            val started = session.start(ScoredLesson.from(timeline), Strictness.STANDARD, true, latency, clicks)
+            Log.i(HITS_TAG, "score start=$started route=${route?.key} latencyMs=$latency speakerMode=${clicks != null}")
+            runAndReport(session, isPlaying)
         }
+    }
+
+    private suspend fun runAndReport(
+        session: ScoringSession,
+        isPlaying: () -> Boolean,
+    ) {
+        while (isPlaying()) {
+            delay(3_000)
+            Log.i(HITS_TAG, "score progress ${session.snapshot.stats}")
+        }
+        session.stop()
+        while (session.isListening) delay(50)
+        val snapshot = session.snapshot
+        val hits = snapshot.marks.flatten().filter { it.kind == NoteMark.Kind.HIT }
+        Log.i(HITS_TAG, "score done ${snapshot.stats} clickGuard(leakDb, dropped)=${session.clickGuardReport}")
+        Log.i(
+            HITS_TAG,
+            "score offsets " + hits.takeLast(24).joinToString { "%.1f".format(Locale.ROOT, it.offsetMillis) },
+        )
     }
 
     fun stop() {

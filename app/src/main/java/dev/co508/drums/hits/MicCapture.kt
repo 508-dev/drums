@@ -36,7 +36,8 @@ class MicCapture(
     context: Context,
     /** Capture rate: the output's, so both streams run at the device's native rate. */
     val sampleRate: Int,
-    private val detectorConfig: OnsetDetector.Config = OnsetDetector.Config(),
+    /** How hits are detected; takes effect at the next [start] (speaker mode adds notches). */
+    @Volatile var detectorConfig: OnsetDetector.Config = OnsetDetector.Config(),
 ) {
     private val appContext = context.applicationContext
     private val audioManager = appContext.getSystemService(AudioManager::class.java)

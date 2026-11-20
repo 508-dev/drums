@@ -91,11 +91,16 @@ class OnsetDetector(
         val relativeGateDb: Double = 30.0,
         /** How fast the loudest recent hit is forgotten, so playing can get softer. */
         val loudestDecayDbPerSecond: Double = 3.0,
+        /** Tones to notch out before anything else: speaker mode's click and its harmonics. */
+        val notchHz: List<Double> = emptyList(),
+        val notchQ: Double = 6.0,
     )
 
     private fun frames(millis: Double): Int = max(1, (millis * sampleRate / 1000.0).roundToInt())
 
-    private val filters = Array(config.highPassSections) { Biquad.highPass(sampleRate, config.highPassHz) }
+    private val filters =
+        Array(config.highPassSections) { Biquad.highPass(sampleRate, config.highPassHz) } +
+            config.notchHz.filter { it < sampleRate / 2.0 }.map { Biquad.notch(sampleRate, it, config.notchQ) }
     private val window = max(2, frames(config.windowMillis) / 2 * 2)
     private val half = window / 2
     private val subBlock = frames(SUB_BLOCK_MILLIS)

@@ -682,15 +682,17 @@ The mic also hears the app's own click and snare, exactly when the player hits.
   after calibration. Calibration is tap-along.
 - **Speaker mode** is best-effort: snare playback mutes during scored runs, and
   the click is pitched into a narrow band the detector ignores. Calibration is
-  an automatic loopback: the phone plays clicks and listens to itself.
+  an automatic loopback: the phone plays clicks and listens to itself. How it
+  was built, and what it took on a real speaker, is under "Speaker Mode".
 
 ### Showing How Far Off You Were
 
 - **Per note**: a mark ahead of or behind the note, colored by timing window
   (for example green within ±15 ms, yellow within ±35 ms, red beyond). Missed
   notes are drawn hollow; extra hits are flagged.
-- **Per run**: average offset (rushing or dragging), spread, percent of hits in
-  window, misses and extras, all saved to the practice log. Also a per-hand
+- **Per run**: average offset (rushing or dragging), spread, percent of notes
+  played within the window (misses count against it), misses and extras, all
+  saved to the practice log. Also a per-hand
   split: the mic can't tell hands apart, but each hit maps to an expected R or
   L, which exposes a weak hand.
 - **Windows** are fixed in milliseconds, with a strictness setting, and narrow
@@ -898,8 +900,9 @@ speaker; speaker mode (#32) mutes the snare.
 After a scored run (#31), a **Last scored run** card sits under Play until
 the next run, and History shows the same lines on the session:
 
-- **Percent in window:** green and yellow hits as a share of all notes (hit
-  or missed), with the green share beside it. Then misses and extras.
+- **Percent in window:** the percent of notes played within the window, green
+  or yellow; misses count against it. The green share is beside it, then misses
+  and extras.
 - **Average offset**, labelled *rushing* or *dragging* beyond ±3 ms (else *on
   time*), and the **spread**: the standard deviation of the hit offsets.
 - **Per hand:** each hand's average and misses. The mic can't tell hands
@@ -924,6 +927,55 @@ in place of one that failed to save). Because the scoring session runs in an
 application scope, leaving the screen right after stopping still saves the
 score. A run with no scored notes, or one without a logged session, saves
 none.
+
+### Speaker Mode
+
+A scored run through the phone speaker (#32) puts the app's own sounds a few
+centimetres from the mic: tens of dB louder there than a pad across the room.
+**Speaker mode applies by itself** whenever a scored run's output is the
+phone speaker, and never on headphones. The player shouldn't have to remember
+a switch, and nothing else is right on the speaker. It does four things:
+
+- **Snare muted.** All volume changes go through `SpeakerMode`, so a slider
+  moved mid-run can't unmute it. The snare's own volume returns at Stop.
+- **A click the detector doesn't hear.** The run uses a 500 Hz tone (630 Hz
+  accented) in a **Gaussian envelope** (σ = 4 ms). A Gaussian's spectrum is
+  Gaussian too, so there is no broadband attack. The detector, in turn,
+  high-passes twice as steeply (48 dB/octave at 2 kHz) and notches the click's
+  pitches and their 2nd and 3rd harmonics (Q 2). The soft attack is heard
+  about 8 ms in, so the click carries a measured `attackFrames` and the
+  transport leads clicks by it, as it leads the snare ("A Snare's Attack Is On
+  The Beat").
+- **A click guard.** The app knows to the sample when each click reaches the
+  mic, since calibration aligns them. During the count-in it learns how loudly
+  the click leaks into the mic. During the run, onsets within ±4 ms of a click
+  and no louder than that leak plus 6 dB are dropped as echoes; a stick hit on
+  the beat is far louder and stays. Scored speaker runs therefore always count
+  in.
+- **The headphones recommendation** shows under Score my playing whenever
+  scoring is on and the output is the speaker. It is also in the permission
+  explanation and on the calibration screen.
+
+**Why all of it.**
+
+- *A narrow band alone isn't enough.* The first design was a 750/950 Hz click
+  with a 4 ms raised-cosine attack, behind the usual 2 kHz high-pass and
+  narrow notches. Synthetic tests still heard it: the high-pass leaves a loud
+  click only about 28 dB down, and the envelope's spectral skirt and a
+  speaker's distortion harmonics reach into the detector's band. A comb filter
+  (nulling every harmonic of a 500 Hz base) failed too, because distortion
+  varies with the envelope.
+- *The final design, measured on the ASUS speaker.* With the usual click and
+  detector, every click came back at the calibrated beat (21 of 21, −54 dBFS,
+  −44 accented). In speaker mode, none did at media volume 12/30 or 30/30, and
+  2 of about 25 at 20/30, which is the room's chance rate.
+- *Scored with no one playing,* runs with the click on and off came out alike,
+  with the guard learning no leak. The guard is there for louder or worse
+  speakers.
+- *Limits.* A speaker driven into hard distortion still leaks, which a
+  synthetic test documents. At full volume the click's residue raises the
+  adaptive noise floor, so very soft strokes are heard less on the speaker.
+  Headphones avoid all of this.
 
 ## Licensing And Distribution
 
