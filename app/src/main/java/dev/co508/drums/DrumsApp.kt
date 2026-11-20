@@ -7,6 +7,8 @@ import dev.co508.drums.audio.SampledSounds
 import dev.co508.drums.history.PracticeDatabase
 import dev.co508.drums.history.PracticeHistory
 import dev.co508.drums.history.PracticeRunLog
+import dev.co508.drums.hits.HitTimeline
+import dev.co508.drums.hits.MicCapture
 import dev.co508.drums.lesson.AssetPackSource
 import dev.co508.drums.lesson.PackLoader
 import dev.co508.drums.lesson.PackResult
@@ -36,6 +38,15 @@ class DrumsApp : Application() {
             )
         PlaybackSession(this, engine, transport, AudioClock(engine, rate), PracticeRunLog(history::record))
     }
+
+    /**
+     * The microphone, for hit detection (M5). Created on first use; it opens
+     * only when scoring asks for it, after the RECORD_AUDIO permission.
+     */
+    val mic: MicCapture by lazy { MicCapture(this, playback.engine.sampleRate) }
+
+    /** Places mic hits on the playback clock and the transport's musical timeline. */
+    val hitTimeline: HitTimeline by lazy { HitTimeline(playback.clock, playback.transport.tempoMap) }
 
     /** The sounds lessons play with, loaded at the output's sample rate. */
     val kit: DrumKit by lazy {

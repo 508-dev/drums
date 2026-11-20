@@ -81,6 +81,11 @@ with diff images in `app/build/outputs/roborazzi/`. After an intended
 rendering change, re-record with `./gradlew recordRoborazziDebug` and review
 the new images before committing them.
 
+## Hit detection
+
+The M5 microphone pipeline, its adb-driven device checks and how to record pad
+fixtures are in [`hit-detection.md`](hit-detection.md).
+
 ## Practice interruption diagnostics
 
 `adb logcat -s PlaybackSession:I AudioTrackEngine:E` shows timestamped stop

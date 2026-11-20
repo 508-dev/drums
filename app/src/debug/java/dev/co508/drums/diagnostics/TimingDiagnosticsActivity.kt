@@ -1,5 +1,7 @@
 package dev.co508.drums.diagnostics
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.SystemClock
@@ -8,6 +10,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +38,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
@@ -47,6 +51,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import dev.co508.drums.DrumsApp
 import dev.co508.drums.lesson.AssetPackSource
 import dev.co508.drums.lesson.Expansion
@@ -76,9 +81,20 @@ import kotlin.math.roundToInt
  *         --ez exitTest true --ei durationSeconds 600
  *
  * While playing, a summary is logged every 10 s under the tag `RatamatapTiming`.
+ *
+ * For M5's microphone checks, `--ez listen true` starts listening (asking for
+ * the permission if needed) and `--ez play true` plays the subdivision pattern
+ * with `--ei bpm`, `--ei notesPerBeat`, `--ez snare`, `--ez click` and, if
+ * given, stops after `--ei durationSeconds`. `--ei recordSeconds N --es label L`
+ * records the raw mic for N seconds to a WAV file (docs/hit-detection.md).
  */
 class TimingDiagnosticsActivity : ComponentActivity() {
     private val session: PlaybackSession get() = (application as DrumsApp).playback
+    private var mic: MicDiagnostics? = null
+    private val micPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            mic?.onPermissionResult(granted)
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,6 +104,22 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         val kit = (application as DrumsApp).kit
         val controller = DiagnosticsController(session, kit, lessons)
         if (packErrors.isNotEmpty()) controller.message = packErrors.joinToString("\n")
+        val app = application as DrumsApp
+        val micTools =
+            MicDiagnostics(
+                mic = app.mic,
+                timeline = app.hitTimeline,
+                session = session,
+                graceGapMillis = { controller.graceGapMillis.toDouble() },
+                recordingsDir = { getExternalFilesDir(RECORDINGS_FOLDER) },
+                hasPermission = {
+                    ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
+                        PackageManager.PERMISSION_GRANTED
+                },
+                requestPermission = { micPermission.launch(Manifest.permission.RECORD_AUDIO) },
+                describeRun = controller::describeRun,
+            )
+        mic = micTools
         session.onInterrupted = { reason ->
             controller.onInterrupted(reason)
         }
@@ -97,9 +129,21 @@ class TimingDiagnosticsActivity : ComponentActivity() {
             } else {
                 0
             }
+        val scripted =
+            ScriptedRun(
+                listen = intent.getBooleanExtra(EXTRA_LISTEN, false),
+                play = intent.getBooleanExtra(EXTRA_PLAY, false),
+                beatsPerMinute = intent.getIntExtra(EXTRA_BPM, 120),
+                notesPerBeat = intent.getIntExtra(EXTRA_NOTES_PER_BEAT, 1),
+                snare = intent.getBooleanExtra(EXTRA_SNARE, true),
+                click = intent.getBooleanExtra(EXTRA_CLICK, true),
+                seconds = intent.getIntExtra(EXTRA_DURATION_SECONDS, 0),
+                recordSeconds = intent.getIntExtra(EXTRA_RECORD_SECONDS, 0),
+                label = intent.getStringExtra(EXTRA_LABEL),
+            )
         setContent {
             MaterialTheme {
-                DiagnosticsScreen(controller, exitTestSeconds)
+                DiagnosticsScreen(controller, micTools, exitTestSeconds, scripted)
             }
         }
     }
@@ -126,20 +170,45 @@ class TimingDiagnosticsActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        mic?.stop()
         session.close()
     }
 
     companion object {
         const val EXTRA_EXIT_TEST = "exitTest"
         const val EXTRA_DURATION_SECONDS = "durationSeconds"
+        const val EXTRA_LISTEN = "listen"
+        const val EXTRA_PLAY = "play"
+        const val EXTRA_BPM = "bpm"
+        const val EXTRA_NOTES_PER_BEAT = "notesPerBeat"
+        const val EXTRA_SNARE = "snare"
+        const val EXTRA_CLICK = "click"
+        const val EXTRA_RECORD_SECONDS = "recordSeconds"
+        const val EXTRA_LABEL = "label"
         const val DEFAULT_EXIT_TEST_SECONDS = 600
         const val DEBUG_PACK_FOLDER = "packs/debug"
+
+        /** Under getExternalFilesDir: /sdcard/Android/data/<package>/files/mic. */
+        const val RECORDINGS_FOLDER = "mic"
     }
 }
 
 private const val TAG = "RatamatapTiming"
 private const val LOG_INTERVAL_NANOS = 10_000_000_000L
 private const val FLASH_MILLIS = 60.0
+
+/** An adb-driven run: see the class comment of [TimingDiagnosticsActivity]. */
+private data class ScriptedRun(
+    val listen: Boolean,
+    val play: Boolean,
+    val beatsPerMinute: Int,
+    val notesPerBeat: Int,
+    val snare: Boolean,
+    val click: Boolean,
+    val seconds: Int,
+    val recordSeconds: Int,
+    val label: String?,
+)
 
 private class DiagnosticsController(
     val session: PlaybackSession,
@@ -213,6 +282,16 @@ private class DiagnosticsController(
             } else {
                 "Stopped by the system (focus lost or headphones unplugged)"
             }
+    }
+
+    fun runScripted(run: ScriptedRun) {
+        lesson = null
+        beatsPerMinute = run.beatsPerMinute.toDouble().coerceIn(MIN_BPM, MAX_BPM)
+        notesPerBeat = run.notesPerBeat.coerceIn(1, 8)
+        snareOn = run.snare
+        clickOn = run.click
+        play()
+        if (playing && run.seconds > 0) stopAtNanos = playStartNanos + run.seconds * 1_000_000_000L
     }
 
     fun runExitTest(seconds: Int) {
@@ -289,7 +368,7 @@ private class DiagnosticsController(
 
     private fun elapsedSeconds(now: Long) = if (playing) (now - playStartNanos) / 1e9 else 0.0
 
-    private fun describeRun() =
+    fun describeRun() =
         "bpm=${beatsPerMinute.toInt()} ${lesson?.let {
             "lesson=${it.id} leadWithLeft=$leadWithLeft"
         } ?: "notesPerBeat=$notesPerBeat"} " +
@@ -363,9 +442,17 @@ private class DiagnosticsController(
 @Composable
 private fun DiagnosticsScreen(
     controller: DiagnosticsController,
+    mic: MicDiagnostics,
     exitTestSeconds: Int,
+    scripted: ScriptedRun,
 ) {
     val view = LocalView.current
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) {
+        if (scripted.listen) mic.toggle()
+        if (scripted.recordSeconds > 0) mic.startRecording(scripted.recordSeconds.toDouble(), scripted.label)
+        if (scripted.play) controller.runScripted(scripted)
+    }
     LaunchedEffect(Unit) {
         if (exitTestSeconds > 0) controller.runExitTest(exitTestSeconds)
     }
@@ -381,6 +468,7 @@ private fun DiagnosticsScreen(
         while (true) {
             controller.refreshRateHz = view.display?.refreshRate ?: 60f
             controller.tick()
+            mic.tick(scope)
             delay(250)
         }
     }
@@ -401,6 +489,14 @@ private fun DiagnosticsScreen(
             controller.message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             RecoveryStatus(controller.outputStats)
             Text(controller.statsText, fontFamily = FontFamily.Monospace, fontSize = 12.sp, lineHeight = 15.sp)
+            MicPanel(
+                state = mic.state,
+                onToggle = mic::toggle,
+                onIncludeClicks = mic::setIncludeClicks,
+                onResetOffsets = mic::resetOffsets,
+                onLabel = mic::setLabel,
+                onRecord = { mic.toggleRecording(scope) },
+            )
         }
     }
 }
