@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.0](https://github.com/508-dev/ratamatap/compare/v0.1.0...v0.2.0) (2026-11-20)
+
+
+### Features
+
+* hit matching and per-note feedback in both views ([#87](https://github.com/508-dev/ratamatap/issues/87)) ([81a580c](https://github.com/508-dev/ratamatap/commit/81a580cbb662774082cf3bd817b4ff620afc14a7)), closes [#30](https://github.com/508-dev/ratamatap/issues/30)
+* mic capture and onset detection on the shared clock ([#82](https://github.com/508-dev/ratamatap/issues/82)) ([69ef037](https://github.com/508-dev/ratamatap/commit/69ef0377cc72238ddae85e3cea0afb373b8f6911))
+* run summary and scores in the practice log (Room v2) ([#88](https://github.com/508-dev/ratamatap/issues/88)) ([ae0de82](https://github.com/508-dev/ratamatap/commit/ae0de8208dfca0f1f12ad9b7970b9f1351773366)), closes [#31](https://github.com/508-dev/ratamatap/issues/31)
+* speaker loopback and tap-along calibration per output route ([#86](https://github.com/508-dev/ratamatap/issues/86)) ([51bc7d7](https://github.com/508-dev/ratamatap/commit/51bc7d73dea55c5bfd37302c1683cc75eb54f8c1)), closes [#29](https://github.com/508-dev/ratamatap/issues/29)
+* speaker mode for scored runs on the phone speaker ([#89](https://github.com/508-dev/ratamatap/issues/89)) ([24a8073](https://github.com/508-dev/ratamatap/commit/24a807340129d6a71423dc6caa7b2a4b10a5aebe)), closes [#32](https://github.com/508-dev/ratamatap/issues/32)
+
+
+### Bug Fixes
+
+* put sampled snare attacks on the beat (Closes [#83](https://github.com/508-dev/ratamatap/issues/83)) ([#85](https://github.com/508-dev/ratamatap/issues/85)) ([d297674](https://github.com/508-dev/ratamatap/commit/d29767457165530ff7859d207a55b2276f607866))
+
 ## [0.1.0](https://github.com/508-dev/ratamatap/compare/v0.0.1...v0.1.0) (2026-11-20)
 
 
