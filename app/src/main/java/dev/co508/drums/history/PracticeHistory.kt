@@ -11,25 +11,38 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
-/** Application-owned writes survive navigation; failed entries stay pending for an explicit retry. */
+/**
+ * Application-owned writes survive navigation; failed entries stay pending for
+ * an explicit retry. Writes keep their order, so a session's score is never
+ * inserted before the session it belongs to.
+ */
 class PracticeHistory(
     private val dao: PracticeDao,
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
-    private val queue = Channel<PracticeRecord?>(Channel.UNLIMITED)
+    private val queue = Channel<Any?>(Channel.UNLIMITED)
     private val failure = MutableStateFlow<String?>(null)
     val writeError = failure.asStateFlow()
-    val data = combine(dao.sessions(), dao.bestTempos(), ::HistoryData)
+    val data =
+        combine(dao.sessions(), dao.bestTempos(), dao.scores()) { sessions, bests, scores ->
+            HistoryData(sessions, bests, scores.associateBy { it.sessionId })
+        }
 
     init {
         scope.launch {
-            val pending = linkedMapOf<String, PracticeRecord>()
-            for (record in queue) {
-                if (record != null) pending[record.id] = record
+            val pending = linkedMapOf<String, Any>()
+            for (entry in queue) {
+                when (entry) {
+                    is PracticeRecord -> pending["session:${entry.id}"] = entry
+                    is SessionScore -> pending["score:${entry.sessionId}"] = entry
+                }
                 try {
                     val iterator = pending.iterator()
                     while (iterator.hasNext()) {
-                        dao.insert(iterator.next().value)
+                        when (val next = iterator.next().value) {
+                            is PracticeRecord -> dao.insert(next)
+                            is SessionScore -> dao.insertScore(next)
+                        }
                         iterator.remove()
                     }
                     failure.value = null
@@ -45,6 +58,11 @@ class PracticeHistory(
 
     fun record(record: PracticeRecord) {
         queue.trySend(record)
+    }
+
+    /** A scored session's results; recorded after its session. Any thread. */
+    fun recordScore(score: SessionScore) {
+        queue.trySend(score)
     }
 
     fun retry() {

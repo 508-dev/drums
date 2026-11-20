@@ -63,6 +63,23 @@ class HistoryScreenshotTest {
         compose.onNodeWithText("Manual tempo").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun scoredSessionsShowTheirSummary() {
+        val scored =
+            data.copy(
+                scores =
+                    mapOf(
+                        "new" to
+                            dev.co508.drums.history.PracticeMigrationTest
+                                .score("new")
+                                .copy(gracesHeard = 5, gracesUnheard = 3),
+                    ),
+            )
+        content(scored)
+        compose.onNodeWithText("Scored (standard)").assertIsDisplayed()
+        compose.onNodeWithText("Average +4.3 ms (dragging) · spread ±9.5 ms").assertIsDisplayed()
+        compose.onRoot().captureRoboImage("src/testDebug/screenshots/history-scored.png")
+    }
+
     @Test fun emptyHistory() {
         content(HistoryData())
         compose.onNodeWithText("No practice sessions yet. Play a lesson to start your log.").assertIsDisplayed()

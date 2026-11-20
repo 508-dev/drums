@@ -83,4 +83,37 @@ class PracticeDatabaseTest {
                 backing.close()
             }
         }
+
+    @Test fun scoresAttachToTheirSessionInOrderAndGoWithIt(): Unit =
+        runBlocking {
+            val backing = Room.inMemoryDatabaseBuilder(context, PracticeDatabase::class.java).build()
+            var fail = true
+            // The session's first insert fails: its score, queued after it, must wait rather than orphan.
+            val fake =
+                object : PracticeDao by backing.practice() {
+                    override suspend fun insert(record: PracticeRecord) {
+                        if (fail) throw java.io.IOException("full disk")
+                        backing.practice().insert(record)
+                    }
+                }
+            val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+            try {
+                val history = PracticeHistory(fake, scope)
+                history.record(PracticeRecord("scored", 100, "pack", "lesson", 1000, 60, 60, false))
+                history.recordScore(PracticeMigrationTest.score("scored"))
+                assertNotNull(withTimeout(10_000) { history.writeError.first { it != null } })
+                assertEquals(emptyList<SessionScore>(), backing.practice().scores().first())
+                fail = false
+                history.retry()
+                val data = withTimeout(10_000) { history.data.first { it.scores.isNotEmpty() } }
+                assertEquals(PracticeMigrationTest.score("scored"), data.scores["scored"])
+                // Deleting a session takes its score with it.
+                backing.openHelper.writableDatabase.execSQL("PRAGMA foreign_keys = ON")
+                backing.openHelper.writableDatabase.execSQL("DELETE FROM practice_sessions WHERE id = 'scored'")
+                assertEquals(emptyList<SessionScore>(), backing.practice().scores().first())
+            } finally {
+                scope.cancel()
+                backing.close()
+            }
+        }
 }

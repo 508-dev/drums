@@ -1,0 +1,228 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "c6a4f9b8dc6261dadb492a9d27951394",
+    "entities": [
+      {
+        "tableName": "practice_sessions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `startedAtMillis` INTEGER NOT NULL, `packId` TEXT NOT NULL, `lessonId` TEXT NOT NULL, `durationMillis` INTEGER NOT NULL, `startingTempo` INTEGER NOT NULL, `highestTempo` INTEGER NOT NULL, `trainerUsed` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startedAtMillis",
+            "columnName": "startedAtMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packId",
+            "columnName": "packId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lessonId",
+            "columnName": "lessonId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "durationMillis",
+            "columnName": "durationMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startingTempo",
+            "columnName": "startingTempo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "highestTempo",
+            "columnName": "highestTempo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "trainerUsed",
+            "columnName": "trainerUsed",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_practice_sessions_startedAtMillis",
+            "unique": false,
+            "columnNames": [
+              "startedAtMillis"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_sessions_startedAtMillis` ON `${TABLE_NAME}` (`startedAtMillis`)"
+          },
+          {
+            "name": "index_practice_sessions_packId_lessonId",
+            "unique": false,
+            "columnNames": [
+              "packId",
+              "lessonId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_practice_sessions_packId_lessonId` ON `${TABLE_NAME}` (`packId`, `lessonId`)"
+          }
+        ]
+      },
+      {
+        "tableName": "session_scores",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`sessionId` TEXT NOT NULL, `strictness` TEXT NOT NULL, `routeKey` TEXT, `calibrated` INTEGER NOT NULL, `green` INTEGER NOT NULL, `yellow` INTEGER NOT NULL, `red` INTEGER NOT NULL, `misses` INTEGER NOT NULL, `extras` INTEGER NOT NULL, `meanOffsetMillis` REAL, `spreadMillis` REAL, `leftHits` INTEGER NOT NULL, `leftMisses` INTEGER NOT NULL, `leftMeanOffsetMillis` REAL, `rightHits` INTEGER NOT NULL, `rightMisses` INTEGER NOT NULL, `rightMeanOffsetMillis` REAL, `gracesHeard` INTEGER NOT NULL, `gracesUnheard` INTEGER NOT NULL, PRIMARY KEY(`sessionId`), FOREIGN KEY(`sessionId`) REFERENCES `practice_sessions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "sessionId",
+            "columnName": "sessionId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "strictness",
+            "columnName": "strictness",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "routeKey",
+            "columnName": "routeKey",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "calibrated",
+            "columnName": "calibrated",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "green",
+            "columnName": "green",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "yellow",
+            "columnName": "yellow",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "red",
+            "columnName": "red",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "misses",
+            "columnName": "misses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extras",
+            "columnName": "extras",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "meanOffsetMillis",
+            "columnName": "meanOffsetMillis",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "spreadMillis",
+            "columnName": "spreadMillis",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "leftHits",
+            "columnName": "leftHits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "leftMisses",
+            "columnName": "leftMisses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "leftMeanOffsetMillis",
+            "columnName": "leftMeanOffsetMillis",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "rightHits",
+            "columnName": "rightHits",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rightMisses",
+            "columnName": "rightMisses",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rightMeanOffsetMillis",
+            "columnName": "rightMeanOffsetMillis",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "gracesHeard",
+            "columnName": "gracesHeard",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gracesUnheard",
+            "columnName": "gracesUnheard",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "sessionId"
+          ]
+        },
+        "foreignKeys": [
+          {
+            "table": "practice_sessions",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "sessionId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c6a4f9b8dc6261dadb492a9d27951394')"
+    ]
+  }
+}

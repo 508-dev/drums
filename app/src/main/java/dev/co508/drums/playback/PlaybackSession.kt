@@ -54,6 +54,9 @@ class PlaybackSession(
     var isPlaying = false
         private set
     private var loggedSettings: PlaySettings? = null
+
+    /** The practice-log session of the current run, if it is logged: scores attach to it. */
+    val runId: String? get() = runLog?.activeId
     private var previousStartGeneration = 0L
 
     private val audioManager = context.getSystemService(AudioManager::class.java)

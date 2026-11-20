@@ -41,6 +41,7 @@ internal fun PracticeControls(
     scoring: Boolean = false,
     onScoring: ((Boolean) -> Unit)? = null,
     scoringNote: String? = null,
+    runSummary: List<String>? = null,
 ) {
     val tempo = if (playing) heardTempo else settings.tempo
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -51,6 +52,7 @@ internal fun PracticeControls(
         Toggle("Score my playing", scoring, !playing, onScoring)
         scoringNote?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
     }
+    runSummary?.let { RunSummaryCard(it) }
     Text(beatLabel, style = MaterialTheme.typography.bodySmall)
     message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {

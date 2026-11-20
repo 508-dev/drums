@@ -632,12 +632,11 @@ process death before a completed write can still lose an active/pending run.
 
 Room v1 uses a stable UUID session primary key and separate pack/lesson IDs,
 with no foreign key to the installed lesson library: removing a pack must not
-erase its history. M5 can attach hit summaries/per-hand/per-note rows by
-`sessionId` foreign key in a related table through a versioned migration; we do
-not invent empty hit-stat fields now. Exported schema JSON is tracked and the
-Room migration helper validates the v1 baseline/data preservation. Real
-upgrade paths get tests when another schema version exists; no destructive
-migration fallback is allowed.
+erase its history. Exported schema JSON is tracked, and every version step is
+a real migration tested with Room's migration helper from the exported older
+schema. No destructive migration fallback is allowed. Room v2 (M5) adds
+scored sessions' results in their own table ("Run Summaries In The Practice
+Log").
 
 **Backup is enabled for history and settings.** They are user-owned progress
 worth keeping on a phone change, and contain no credentials or microphone data.
@@ -893,6 +892,38 @@ the phone hearing its own snare, matched 113 of 117 notes. Nearly all were
 green, at a steady +9 ms (the samples' late body against the click-based
 calibration). Its extras were the samples' second (wire) onsets through the
 speaker; speaker mode (#32) mutes the snare.
+
+### Run Summaries In The Practice Log
+
+After a scored run (#31), a **Last scored run** card sits under Play until
+the next run, and History shows the same lines on the session:
+
+- **Percent in window:** green and yellow hits as a share of all notes (hit
+  or missed), with the green share beside it. Then misses and extras.
+- **Average offset**, labelled *rushing* or *dragging* beyond ±3 ms (else *on
+  time*), and the **spread**: the standard deviation of the hit offsets.
+- **Per hand:** each hand's average and misses. The mic can't tell hands
+  apart, but every hit is matched to an R or L note, which exposes a weak hand.
+- **Grace notes heard as their own stroke**, when the lesson has any.
+- A note when the output wasn't calibrated, because then the offsets include
+  its delay.
+
+**Storage.** Room v2 adds a `session_scores` table: one row per scored session,
+keyed by the session's ID, with a foreign key to `practice_sessions` that
+cascades on delete. It stores counts and the computed averages, not per-note
+rows; nothing reads per-note history, and a long session would be thousands
+of rows. Strictness and route are kept, so later summaries can tell their
+contexts apart. `MIGRATION_1_2` only creates the table. A Robolectric test
+builds a v1 database from the exported v1 schema, migrates it, validates it
+against the exported v2 schema, and reads the old sessions back.
+
+**Writing.** The score is written when the scoring session has decided the
+run's last notes, a moment after the session row itself. That goes through
+the same ordered retry queue, so a score never lands before its session (or
+in place of one that failed to save). Because the scoring session runs in an
+application scope, leaving the screen right after stopping still saves the
+score. A run with no scored notes, or one without a logged session, saves
+none.
 
 ## Licensing And Distribution
 

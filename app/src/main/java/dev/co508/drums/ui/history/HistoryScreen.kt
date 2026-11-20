@@ -130,6 +130,15 @@ internal fun HistoryContent(
                         )} min · Start ${session.startingTempo} BPM · Highest ${session.highestTempo} BPM",
                     )
                     Text(if (session.trainerUsed) "Speed trainer" else "Manual tempo")
+                    data.scores[session.id]?.let { score ->
+                        Column(Modifier.padding(top = 4.dp)) {
+                            Text(
+                                "Scored (${score.strictness.lowercase()})",
+                                style = MaterialTheme.typography.labelLarge,
+                            )
+                            scoreLines(score, locale).forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+                        }
+                    }
                     Text("${session.packId} / ${session.lessonId}", style = MaterialTheme.typography.bodySmall)
                 }
                 HorizontalDivider()
