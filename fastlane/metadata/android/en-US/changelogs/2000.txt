@@ -1,0 +1,11 @@
+Features:
+
+- hit matching and per-note feedback in both views, closes #30
+- mic capture and onset detection on the shared clock
+- run summary and scores in the practice log (Room v2), closes #31
+- speaker loopback and tap-along calibration per output route, closes #29
+- speaker mode for scored runs on the phone speaker, closes #32
+
+Bug Fixes:
+
+- put sampled snare attacks on the beat (Closes #83)
