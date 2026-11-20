@@ -76,6 +76,7 @@ private fun DrumsScreen(app: DrumsApp) {
                             app.settings,
                             onBack = onBack,
                             scoring = app.scoring,
+                            history = app.history,
                         )
                     }
                 }
