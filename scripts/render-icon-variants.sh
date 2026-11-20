@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Render the review candidates from their Android vector paths. No Android SDK needed.
+# Render the selected icon from its Android vector paths. No Android SDK needed.
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 command -v rsvg-convert >/dev/null
 scratch=$(mktemp -d)
 trap 'rm -rf "$scratch"' EXIT
 
-for variant in a b c d; do
+for variant in a; do
     dir="docs/icon/variants/$variant"
     for channel in stable beta; do
         background="$dir/background.xml"
