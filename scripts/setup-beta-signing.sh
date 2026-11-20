@@ -12,8 +12,8 @@
 # Both files are reused verbatim when they already exist — never overwrite a key
 # that beta users already trust. The beta key is deliberately separate from the
 # release key: the beta workflow runs on arbitrary branches and must never hold
-# the release signing material. See docs/beta-builds.md. Maintainer use only;
-# agents must never execute this script or create signing keys or secrets.
+# the release signing material. See docs/beta-builds.md. Run this yourself as
+# the maintainer. An agent may run it only when the maintainer explicitly asks.
 #
 # With --repo, sets BETA_KEYSTORE_BASE64, BETA_KEYSTORE_PASSWORD, BETA_KEY_ALIAS,
 # and BETA_KEY_PASSWORD using `gh secret set -R <owner/repo>`. Values are fed

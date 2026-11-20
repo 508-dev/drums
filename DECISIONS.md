@@ -715,7 +715,15 @@ the full description:
 - store copy lives in `fastlane/`
 - the licenses screen is maintained by hand
 
-Signing keys and secrets are created by a human, never by an agent.
+Signing keys are created deliberately with `scripts/setup-release-signing.sh`
+(release) and `scripts/setup-beta-signing.sh` (beta). The maintainer runs
+them, or an agent does when the maintainer explicitly asks; never as a side
+effect of other work. The release script stores the key in pass under
+`508/android/<slug>/`, named exactly after the GitHub secrets, sets the Prod
+environment secrets with `gh`, and refuses to replace an existing key. The
+Ratamatap release key was created this way on 2026-11-20. Its certificate's
+SHA-256 fingerprint is
+`BE:DB:25:35:9D:04:5E:86:E6:1A:79:01:A0:D2:71:6D:F6:44:7E:BF:1E:BD:CB:1F:AC:56:5F:BB:7C:8F:4C:7C`.
 
 ## Process
 
