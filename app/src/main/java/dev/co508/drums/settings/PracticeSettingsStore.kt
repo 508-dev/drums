@@ -127,6 +127,14 @@ class PracticeSettingsStore(
         writes.trySend(Operation.Edit { it.copy(calibrations = it.calibrations + (key to value)) })
     }
 
+    fun saveScoring(enabled: Boolean) {
+        writes.trySend(Operation.Edit { it.copy(scoring = enabled) })
+    }
+
+    fun saveStrictness(name: String) {
+        writes.trySend(Operation.Edit { it.copy(strictness = name) })
+    }
+
     fun forgetCalibration(key: String) {
         writes.trySend(Operation.Edit { it.copy(calibrations = it.calibrations - key) })
     }

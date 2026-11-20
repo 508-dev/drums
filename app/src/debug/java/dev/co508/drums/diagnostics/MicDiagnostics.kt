@@ -28,7 +28,12 @@ import dev.co508.drums.hits.Calibrator
 import dev.co508.drums.hits.DetectedHit
 import dev.co508.drums.hits.HitTimeline
 import dev.co508.drums.hits.MicCapture
+import dev.co508.drums.lesson.StrokeTimeline
 import dev.co508.drums.playback.PlaybackSession
+import dev.co508.drums.scoring.NoteMark
+import dev.co508.drums.scoring.ScoredLesson
+import dev.co508.drums.scoring.ScoringSession
+import dev.co508.drums.scoring.Strictness
 import dev.co508.drums.ui.settings.resultText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -163,6 +168,46 @@ internal class MicDiagnostics(
     }
 
     var saveCalibration: (Calibrator.State.Finished) -> Unit = {}
+
+    var scoring: ScoringSession? = null
+
+    /**
+     * Scores the lesson now playing (adb: `--es score <lesson>`), with the
+     * current route's calibration, and logs its totals every few seconds and
+     * at the end. With the speaker on, the phone scores its own snare.
+     */
+    @SuppressLint("MissingPermission")
+    fun score(
+        timeline: StrokeTimeline,
+        isPlaying: () -> Boolean,
+        scope: CoroutineScope,
+    ) {
+        val session = scoring ?: return
+        if (!hasPermission()) return
+        if (mic.isRunning) stop()
+        val route =
+            this.session.engine
+                .stats()
+                .outputRoute
+        val latency = route?.let(calibrationMillis) ?: 0.0
+        val started = session.start(ScoredLesson.from(timeline), Strictness.STANDARD, true, latency)
+        Log.i(HITS_TAG, "score start=$started route=${route?.key} latencyMs=$latency")
+        scope.launch {
+            while (isPlaying()) {
+                delay(3_000)
+                Log.i(HITS_TAG, "score progress ${session.snapshot.stats}")
+            }
+            session.stop()
+            while (session.isListening) delay(50)
+            val snapshot = session.snapshot
+            val hits = snapshot.marks.flatten().filter { it.kind == NoteMark.Kind.HIT }
+            Log.i(HITS_TAG, "score done ${snapshot.stats}")
+            Log.i(
+                HITS_TAG,
+                "score offsets " + hits.takeLast(24).joinToString { "%.1f".format(Locale.ROOT, it.offsetMillis) },
+            )
+        }
+    }
 
     fun stop() {
         if (recorder.isRecording) recorder.end()

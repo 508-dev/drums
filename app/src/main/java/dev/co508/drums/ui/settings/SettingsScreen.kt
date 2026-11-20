@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
@@ -20,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import dev.co508.drums.scoring.Strictness
 import dev.co508.drums.settings.AppDefaults
 import kotlin.math.roundToInt
 
@@ -30,6 +32,8 @@ internal fun SettingsContent(
     onChange: (AppDefaults) -> Unit,
     onAbout: () -> Unit,
     onCalibration: () -> Unit = {},
+    strictness: Strictness = Strictness.STANDARD,
+    onStrictness: (Strictness) -> Unit = {},
 ) {
     val value = defaults.normalized()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -77,6 +81,24 @@ internal fun SettingsContent(
         Text("Hit timing", style = MaterialTheme.typography.titleMedium)
         Text("Measure your phone's delay per output, so scored hits line up with what you hear.")
         OutlinedButton(onClick = onCalibration) { Text("Calibrate hit timing") }
+        Text("Scoring strictness", style = MaterialTheme.typography.titleSmall)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            for (option in Strictness.entries) {
+                FilterChip(
+                    selected = option == strictness,
+                    onClick = { onStrictness(option) },
+                    label = { Text(option.label) },
+                    enabled = enabled,
+                )
+            }
+        }
+        Text(
+            "Green within ±${strictness.greenMillis.roundToInt()} ms, " +
+                "yellow within ±${strictness.yellowMillis.roundToInt()} ms; " +
+                "a hit more than ${strictness.matchMillis.roundToInt()} ms from every note is an extra. " +
+                "Fast passages narrow the windows so neighbouring notes never share one.",
+            style = MaterialTheme.typography.bodySmall,
+        )
         TextButton(onClick = onAbout) { Text("About") }
     }
 }
@@ -122,3 +144,11 @@ internal fun AboutContent(
         TextButton(onClick = onLicenses) { Text("Licenses and credits") }
     }
 }
+
+internal val Strictness.label: String
+    get() =
+        when (this) {
+            Strictness.RELAXED -> "Relaxed"
+            Strictness.STANDARD -> "Standard"
+            Strictness.STRICT -> "Strict"
+        }

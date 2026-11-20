@@ -26,6 +26,9 @@ a phone, and how real pad recordings become test fixtures. The design is in
 5. **Calibration** (`hits/Calibrator`, `hits/CalibrationMath`, Settings → Hit
    timing calibration): a speaker loopback or a tap-along, stored per phone
    and output route. See below.
+6. **Scoring** (`scoring/HitMatcher`, `scoring/ScoringSession`): hits matched
+   to notes with strictness windows, published as immutable snapshots. Both
+   views draw the marks (DECISIONS.md, "Matching Hits To Notes").
 
 Hits are queued (`hits/HitQueue`, lock-free) for one consumer: the diagnostics
 screen now, and scoring from #30 on.
@@ -120,6 +123,19 @@ On the ASUS, with the speaker at volume 8/30, three consecutive loopback
 calibrations measured 35.03, 34.97 and 34.92 ms, each with about 0.1 ms of
 spread. With the result applied, the click loopback's offsets centred on
 −0.08 ms (22 clicks).
+
+## Scored runs over adb
+
+```bash
+$ADB shell am start -n $A --ez play true --es score single-paradiddle --ei bpm 90 \
+    --ez snare true --ez click false --ei durationSeconds 20
+$ADB logcat -s RatamatapHits | grep score
+```
+
+This plays a lesson with scoring on and the current route's calibration, and
+logs the totals every 3 s and at the end. With the speaker up, the phone
+scores its own snare: on the ASUS, 113 of 117 notes matched, nearly all green
+at a steady +9 ms.
 
 ## Recording pad fixtures (maintainer)
 

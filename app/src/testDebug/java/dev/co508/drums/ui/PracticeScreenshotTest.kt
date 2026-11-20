@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
@@ -77,6 +78,34 @@ class PracticeScreenshotTest {
                 )
             }
         }
+    }
+
+    @Test fun scoringToggleAndItsNote() {
+        var scoring = false
+        compose.setContent {
+            MaterialTheme {
+                PracticeContent(
+                    lesson,
+                    LessonPreferences(),
+                    PracticeView.FALLING_NOTES,
+                    false,
+                    80,
+                    { 0.0 },
+                    onChange = {},
+                    onTempo = {},
+                    onView = {},
+                    onPlayStop = {},
+                    onBack = {},
+                    scoring = true,
+                    onScoring = { scoring = it },
+                    scoringNote = "Phone speaker isn't calibrated: Settings → Calibrate hit timing.",
+                )
+            }
+        }
+        compose.onNodeWithText("Phone speaker isn't calibrated: Settings → Calibrate hit timing.").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Score my playing").performClick()
+        assertEquals(false, scoring)
+        compose.onRoot().captureRoboImage("src/testDebug/screenshots/practice-scoring.png")
     }
 
     @Test fun portrait() {

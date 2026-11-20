@@ -29,8 +29,13 @@ import dev.co508.drums.lesson.Notation
 import dev.co508.drums.lesson.NoteValue
 import dev.co508.drums.lesson.Ornament
 import dev.co508.drums.lesson.StrokeTimeline
+import dev.co508.drums.scoring.NoteMark
+import dev.co508.drums.scoring.ScoringSnapshot
+import dev.co508.drums.ui.falling.GradeColors
 import dev.co508.drums.ui.falling.HandColors
+import dev.co508.drums.ui.falling.drawExtra
 import dev.co508.drums.ui.notation.Glyph
+import kotlin.math.floor
 
 private val ink = Color(0xFF212121)
 private val stickingInk = Color(0xFF616161)
@@ -55,6 +60,8 @@ fun SheetView(
     now: () -> Double,
     modifier: Modifier = Modifier,
     showPlayhead: Boolean = true,
+    /** Scoring marks (M5), read while drawing; null when not scoring. */
+    marks: () -> ScoringSnapshot? = { null },
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -81,9 +88,31 @@ fun SheetView(
                 val s = minOf(maxSpace, widthPx / widest)
                 s to SheetLayout.layout(notation, widthPx / s - MARGIN * 2)
             }
+        // Each written note's main strokes: a note repeated or diddled is played several times a loop.
+        val strokesOf =
+            remember(timeline) {
+                timeline.strokes
+                    .withIndex()
+                    .filter { it.value.graceLead == 0 }
+                    .groupBy({ it.value.source.measureIndex to it.value.source.noteIndex }, { it.index })
+            }
         Canvas(Modifier.matchParentSize()) {
-            val painter = SheetPainter(this, space, glyphPaint, textPaint)
-            val position = if (showPlayhead) sheetPosition(timeline, now()) else null
+            val t = now()
+            val snapshot = marks()
+            val length = timeline.length.toDouble()
+            val loopNow =
+                if (!showPlayhead ||
+                    snapshot == null
+                ) {
+                    snapshot?.latestLoop ?: 0L
+                } else {
+                    floor(t / length).toLong()
+                }
+            val painter =
+                SheetPainter(this, space, glyphPaint, textPaint) { note ->
+                    snapshot?.let { latestMark(it, strokesOf[note.measureIndex to note.noteIndex], loopNow, timeline) }
+                }
+            val position = if (showPlayhead) sheetPosition(timeline, t) else null
             layout.systems.forEachIndexed { s, system ->
                 painter.system(
                     system,
@@ -96,6 +125,15 @@ fun SheetView(
                 val s = layout.systems.indexOfFirst { sys -> sys.measures.any { it.index == tie.from.measureIndex } }
                 painter.tie(tie, TOP_MARGIN + s * SYSTEM_SPACING)
             }
+            snapshot?.extras?.forEach { extra ->
+                val fade = ScoringSnapshot.fade(loopNow - extra.loop)
+                val at = sheetPosition(timeline, extra.position) ?: return@forEach
+                if (fade <= 0f) return@forEach
+                layout.systems.forEachIndexed { s, system ->
+                    val m = system.measures.firstOrNull { it.index == at.measureIndex } ?: return@forEachIndexed
+                    painter.extra(m.xAt(at.offset) + 0.59f, TOP_MARGIN + s * SYSTEM_SPACING, fade)
+                }
+            }
         }
     }
 }
@@ -105,12 +143,43 @@ private const val MARGIN = 1f
 private const val TOP_MARGIN = 8f
 private const val SYSTEM_SPACING = 16f
 
+/** Where scoring marks sit: below the staff and its accents, above the sticking. */
+private const val MARK_Y = 2.7f
+
+/**
+ * The mark to show on a written note: the newest of its strokes' marks at
+ * [loop] or before (the most recent pass, for a note played several times a
+ * loop), with its fade.
+ */
+private fun latestMark(
+    snapshot: ScoringSnapshot,
+    strokes: List<Int>?,
+    loop: Long,
+    timeline: StrokeTimeline,
+): Pair<NoteMark, Float>? {
+    var best: NoteMark? = null
+    for (s in strokes ?: return null) {
+        val mark = snapshot.markFor(s, loop) ?: continue
+        val current = best
+        if (current == null ||
+            mark.loop > current.loop ||
+            (mark.loop == current.loop && timeline.strokes[s].position > timeline.strokes[current.strokeIndex].position)
+        ) {
+            best = mark
+        }
+    }
+    val mark = best ?: return null
+    if (mark.kind == NoteMark.Kind.GRACE_UNHEARD) return null
+    return mark to ScoringSnapshot.fade(loop - mark.loop)
+}
+
 /** Draws engraving in staff-space units: (x, y) here are staff spaces from the margin and the staff line. */
 private class SheetPainter(
     private val scope: DrawScope,
     private val space: Float,
     private val glyphPaint: Paint,
     private val textPaint: Paint,
+    private val markOf: (PlacedNote) -> Pair<NoteMark, Float>? = { null },
 ) {
     private var lineY = 0f
 
@@ -173,7 +242,7 @@ private class SheetPainter(
             // Lit until the next note starts, so only one note is lit at a time.
             val until = m.notes.getOrNull(i + 1)?.offset ?: m.measure.length
             val lit = position != null && position.measureIndex == m.index && litFor(note, until, position.offset)
-            note(note, lit)
+            note(note, lit, m)
         }
         for (group in m.beams) beams(group)
         for (tuplet in m.tuplets) tuplet(tuplet)
@@ -191,15 +260,20 @@ private class SheetPainter(
     private fun note(
         n: PlacedNote,
         lit: Boolean,
+        m: PlacedMeasure,
     ) {
         val note = n.note
         val color = if (lit) HandColors.of(note.hand) else ink
+        val mark = markOf(n)
+        // A note missed on its latest pass is drawn hollow.
+        val missed = mark != null && mark.first.kind == NoteMark.Kind.MISS && mark.second >= 1f
         val head =
-            when (note.value) {
-                NoteValue.WHOLE -> Glyph.NOTEHEAD_WHOLE
-                NoteValue.HALF -> Glyph.NOTEHEAD_HALF
+            when {
+                note.value == NoteValue.WHOLE -> Glyph.NOTEHEAD_WHOLE
+                note.value == NoteValue.HALF || missed -> Glyph.NOTEHEAD_HALF
                 else -> Glyph.NOTEHEAD_BLACK
             }
+        if (mark != null) mark(n, m, mark.first, mark.second)
         if (lit) scope.drawCircle(color.copy(alpha = 0.18f), 1.6f * space, Offset(px(n.x + 0.59f), py(0f)))
         glyph(head, n.x, 0f, color, alignLeft = true)
         if (note.ghost) {
@@ -253,6 +327,48 @@ private class SheetPainter(
                 if (lit) 1.9f else 1.6f,
             )
         }
+    }
+
+    /**
+     * Below the staff, where the hit was against the note: a line from the
+     * note to a dot, left if early, right if late, coloured by window. A miss
+     * from an earlier loop is a faint ring.
+     */
+    private fun mark(
+        n: PlacedNote,
+        m: PlacedMeasure,
+        mark: NoteMark,
+        fade: Float,
+    ) {
+        val x = n.x + 0.59f
+        when (mark.kind) {
+            NoteMark.Kind.HIT -> {
+                val color = GradeColors.of(mark.grade).copy(alpha = fade)
+                val to = x + (mark.offsetQuarters * m.spacesPerQuarter).toFloat()
+                line(x, MARK_Y, to, MARK_Y, 0.22f, color)
+                scope.drawCircle(color, 0.38f * space, Offset(px(to), py(MARK_Y)))
+            }
+            NoteMark.Kind.MISS ->
+                if (fade < 1f) {
+                    scope.drawCircle(
+                        GradeColors.red.copy(alpha = fade * 0.8f),
+                        1.1f * space,
+                        Offset(px(x), py(0f)),
+                        style = Stroke(width = 0.15f * space),
+                    )
+                }
+            NoteMark.Kind.GRACE_UNHEARD -> Unit
+        }
+    }
+
+    /** An extra hit at [x] on the line at [top]: a small × below the staff. */
+    fun extra(
+        x: Float,
+        top: Float,
+        fade: Float,
+    ) {
+        lineY = top
+        scope.drawExtra(px(x), py(MARK_Y), 0.45f * space, fade)
     }
 
     /** Grace notes, to the left of their note: a slashed one as the acciaccatura glyph, others beamed small notes. */

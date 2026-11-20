@@ -69,7 +69,14 @@ private fun DrumsScreen(app: DrumsApp) {
                         app.history,
                         calibration = { CalibrationScreen(app.playback, app.mic, app.settings) },
                     ) { lesson, onBack ->
-                        PracticeScreen(lesson, app.playback, app.kit, app.settings, onBack = onBack)
+                        PracticeScreen(
+                            lesson,
+                            app.playback,
+                            app.kit,
+                            app.settings,
+                            onBack = onBack,
+                            scoring = app.scoring,
+                        )
                     }
                 }
             }

@@ -38,11 +38,18 @@ internal fun PracticeControls(
     beatLabel: String,
     pixelsPerBeat: Float,
     onZoom: (Float) -> Unit,
+    scoring: Boolean = false,
+    onScoring: ((Boolean) -> Unit)? = null,
+    scoringNote: String? = null,
 ) {
     val tempo = if (playing) heardTempo else settings.tempo
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
         Button(onClick = onPlayStop) { Text(if (playing) "Stop" else "Play") }
         Text("$tempo BPM", style = MaterialTheme.typography.titleMedium)
+    }
+    if (onScoring != null) {
+        Toggle("Score my playing", scoring, !playing, onScoring)
+        scoringNote?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
     }
     Text(beatLabel, style = MaterialTheme.typography.bodySmall)
     message?.let { Text(it, color = MaterialTheme.colorScheme.error) }
