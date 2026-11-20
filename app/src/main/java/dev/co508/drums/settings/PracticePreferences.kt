@@ -19,6 +19,10 @@ data class PracticePreferences(
     val defaults: AppDefaults = AppDefaults(),
     /** Hit-detection delays, keyed by [calibrationKey]. */
     val calibrations: Map<String, StoredCalibration> = emptyMap(),
+    /** Score my playing (M5): global, like the view. Needs the microphone permission. */
+    val scoring: Boolean = false,
+    /** A [dev.co508.drums.scoring.Strictness] name. */
+    val strictness: String = "STANDARD",
 ) {
     val zoomPixelsPerBeat: Float
         get() = if (pixelsPerBeat.isFinite()) pixelsPerBeat.coerceIn(48f, 480f) else DEFAULT_ZOOM

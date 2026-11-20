@@ -1,6 +1,12 @@
 package dev.co508.drums.ui.practice
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.Configuration
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,6 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -33,24 +40,32 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import dev.co508.drums.history.PracticeIdentity
 import dev.co508.drums.lesson.Expansion
 import dev.co508.drums.lesson.Hand
 import dev.co508.drums.lesson.Lesson
 import dev.co508.drums.lesson.Notation
+import dev.co508.drums.lesson.StrokeTimeline
 import dev.co508.drums.playback.DrumKit
 import dev.co508.drums.playback.LessonPattern
 import dev.co508.drums.playback.PlaySettings
 import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.playback.Transport
+import dev.co508.drums.scoring.ScoredLesson
+import dev.co508.drums.scoring.ScoringSession
+import dev.co508.drums.scoring.ScoringSnapshot
+import dev.co508.drums.scoring.Strictness
 import dev.co508.drums.settings.LessonPreferences
 import dev.co508.drums.settings.PracticePreferences
 import dev.co508.drums.settings.PracticeSettingsStore
 import dev.co508.drums.settings.preferenceKey
 import dev.co508.drums.ui.falling.FallingNotesLayout
 import dev.co508.drums.ui.falling.FallingNotesView
+import dev.co508.drums.ui.settings.thisPhone
 import dev.co508.drums.ui.sheet.SheetView
 import java.io.IOException
 import kotlin.math.roundToInt
@@ -63,6 +78,7 @@ fun PracticeScreen(
     kit: DrumKit,
     store: PracticeSettingsStore,
     onBack: () -> Unit,
+    scoring: ScoringSession? = null,
 ) {
     var initial by remember(lesson.preferenceKey) { mutableStateOf<PracticePreferences?>(null) }
     var loadError by remember { mutableStateOf(false) }
@@ -75,7 +91,12 @@ fun PracticeScreen(
             loadError = true
         }
     }
-    DisposableEffect(session) { onDispose { session.close() } }
+    DisposableEffect(session) {
+        onDispose {
+            scoring?.stopNow()
+            session.close()
+        }
+    }
     val loaded = initial
     if (loaded == null) {
         Column {
@@ -96,6 +117,17 @@ fun PracticeScreen(
     var runSettings by remember { mutableStateOf<PlaySettings?>(null) }
     var progress by remember { mutableStateOf<String?>(null) }
     var tempoStepped by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    var scoringOn by remember { mutableStateOf(loaded.scoring && scoring != null && micGranted(context)) }
+    var explainMic by remember { mutableStateOf(false) }
+    var scoringNote by remember { mutableStateOf<String?>(null) }
+    var scoredRun by remember { mutableStateOf(false) }
+    val micPermission =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            scoringOn = granted
+            store.saveScoring(granted)
+            scoringNote = if (granted) null else "Scoring needs the microphone. Practice works without it."
+        }
     val writeError by store.writeError.collectAsState()
     val timeline = remember(lesson, settings.leadWithLeft) { Expansion.expand(lesson.notation, settings.leadWithLeft) }
     val pattern = remember(timeline, kit) { LessonPattern.build(timeline, kit) }
@@ -144,6 +176,7 @@ fun PracticeScreen(
                     }
                 }
                 playing = session.isPlaying
+                if (!playing && scoring?.isListening == true) scoring.stop()
                 tempoStepped = playing && t < highlightUntil
                 if (!playing) progress = null
             }
@@ -176,6 +209,26 @@ fun PracticeScreen(
         }
         if (playing) lastPosition[0] else 0.0
     }
+    if (explainMic) {
+        AlertDialog(
+            onDismissRequest = { explainMic = false },
+            title = { Text("Score your playing?") },
+            text = {
+                Text(
+                    "Ratamatap listens through the microphone to hear your stick hits and shows how far " +
+                        "off each one was. The sound is analysed on the phone as you play; nothing is " +
+                        "recorded or sent anywhere. Headphones work best.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    explainMic = false
+                    micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }) { Text("Continue") }
+            },
+            dismissButton = { TextButton(onClick = { explainMic = false }) { Text("Not now") } },
+        )
+    }
     PracticeContent(
         lesson = lesson,
         settings = settings,
@@ -195,6 +248,7 @@ fun PracticeScreen(
         onPlayStop = {
             if (playing) {
                 session.stop()
+                scoring?.stop()
             } else {
                 change(settings)
                 val playSettings = settings.playSettings(pattern)
@@ -210,9 +264,41 @@ fun PracticeScreen(
                         "Playback isn't available right now (a call in progress?)"
                     }
                 runSettings = playSettings
+                scoredRun = false
+                if (session.isPlaying && scoringOn && scoring != null) {
+                    val route = session.engine.stats().outputRoute
+                    val calibration = route?.let { loaded.calibration(thisPhone, it) }
+                    scoredRun =
+                        micGranted(context) &&
+                        startScoring(scoring, timeline, loaded, playSettings.loop, calibration?.latencyMillis ?: 0.0)
+                    scoringNote =
+                        when {
+                            !scoredRun -> "Couldn't open the microphone; this run isn't scored."
+                            calibration == null ->
+                                "${route?.label ?: "This output"} isn't calibrated: Settings → Calibrate hit timing."
+                            else -> null
+                        }
+                }
             }
             playing = session.isPlaying
         },
+        scoring = scoringOn,
+        onScoring =
+            if (scoring == null) {
+                null
+            } else {
+                { on ->
+                    if (on && !micGranted(context)) {
+                        explainMic = true
+                    } else {
+                        scoringOn = on
+                        store.saveScoring(on)
+                        scoringNote = null
+                    }
+                }
+            },
+        scoringNote = scoringNote,
+        marks = { if (scoringOn || scoredRun) scoring?.snapshot else null },
         onBack = {
             session.stop()
             onBack()
@@ -247,6 +333,10 @@ internal fun PracticeContent(
     tempoStepped: Boolean = false,
     pixelsPerBeat: Float = PracticePreferences.DEFAULT_ZOOM,
     onZoom: (Float) -> Unit = {},
+    scoring: Boolean = false,
+    onScoring: ((Boolean) -> Unit)? = null,
+    scoringNote: String? = null,
+    marks: () -> ScoringSnapshot? = { null },
 ) {
     val timeline = remember(lesson, settings.leadWithLeft) { Expansion.expand(lesson.notation, settings.leadWithLeft) }
     val layout = remember(timeline) { FallingNotesLayout.from(timeline) }
@@ -274,8 +364,9 @@ internal fun PracticeContent(
                     pixelsPerBeat = pixelsPerBeat.dp,
                     showCounts = settings.showCounts,
                     lightUp = playing,
+                    marks = marks,
                 )
-            PracticeView.SHEET -> SheetView(notation, timeline, now, modifier, showPlayhead = playing)
+            PracticeView.SHEET -> SheetView(notation, timeline, now, modifier, showPlayhead = playing, marks = marks)
         }
     }
     val controls: @Composable () -> Unit = {
@@ -291,6 +382,9 @@ internal fun PracticeContent(
             beatLabel,
             pixelsPerBeat,
             onZoom,
+            scoring,
+            onScoring,
+            scoringNote,
         )
         TextButton(onClick = { tipsExpanded = !tipsExpanded }) {
             Text(if (tipsExpanded) "Hide description and tips" else "Description and tips")
@@ -346,6 +440,19 @@ internal fun PracticeContent(
         }
     }
 }
+
+private fun micGranted(context: Context): Boolean =
+    ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+
+// Only called after micGranted().
+@SuppressLint("MissingPermission")
+private fun startScoring(
+    scoring: ScoringSession,
+    timeline: StrokeTimeline,
+    preferences: PracticePreferences,
+    loops: Boolean,
+    latencyMillis: Double,
+): Boolean = scoring.start(ScoredLesson.from(timeline), Strictness.of(preferences.strictness), loops, latencyMillis)
 
 /** The sheet must show the same swapped grace and main hands as the expanded playback. */
 internal fun Notation.forDisplay(leadWithLeft: Boolean): Notation =

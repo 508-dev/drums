@@ -93,8 +93,9 @@ import kotlin.math.roundToInt
  * with `--ei bpm`, `--ei notesPerBeat`, `--ez snare`, `--ez click` and, if
  * given, stops after `--ei durationSeconds`. `--ei recordSeconds N --es label L`
  * records the raw mic for N seconds to a WAV file. `--es calibrate LOOPBACK`
- * (or `TAP_ALONG`) runs the Settings calibration here and saves its result
- * (docs/hit-detection.md).
+ * (or `TAP_ALONG`) runs the Settings calibration here and saves its result.
+ * `--ez play true --es score <lesson id>` plays a lesson with scoring on and
+ * logs the totals (docs/hit-detection.md).
  */
 class TimingDiagnosticsActivity : ComponentActivity() {
     private val session: PlaybackSession get() = (application as DrumsApp).playback
@@ -132,6 +133,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
                 },
             )
         micTools.saveCalibration = { saveMeasuredCalibration(it, app.settings) }
+        micTools.scoring = app.scoring
         mic = micTools
         lifecycleScope.launch { app.settings.data.collect { latestPreferences = it } }
         session.onInterrupted = { reason ->
@@ -155,12 +157,10 @@ class TimingDiagnosticsActivity : ComponentActivity() {
                 recordSeconds = intent.getIntExtra(EXTRA_RECORD_SECONDS, 0),
                 calibrate =
                     intent.getStringExtra(EXTRA_CALIBRATE)?.let { name ->
-                        CalibrationMethod.entries.firstOrNull {
-                            it.name ==
-                                name
-                        }
+                        CalibrationMethod.entries.firstOrNull { it.name == name }
                     },
                 label = intent.getStringExtra(EXTRA_LABEL),
+                score = intent.getStringExtra(EXTRA_SCORE),
             )
         setContent {
             MaterialTheme {
@@ -207,6 +207,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         const val EXTRA_RECORD_SECONDS = "recordSeconds"
         const val EXTRA_LABEL = "label"
         const val EXTRA_CALIBRATE = "calibrate"
+        const val EXTRA_SCORE = "score"
         const val DEFAULT_EXIT_TEST_SECONDS = 600
         const val DEBUG_PACK_FOLDER = "packs/debug"
 
@@ -231,6 +232,8 @@ private data class ScriptedRun(
     val recordSeconds: Int,
     val label: String?,
     val calibrate: CalibrationMethod?,
+    /** A lesson ID to play with scoring on (`--es score single-paradiddle`). */
+    val score: String?,
 )
 
 private class DiagnosticsController(
@@ -309,7 +312,7 @@ private class DiagnosticsController(
     }
 
     fun runScripted(run: ScriptedRun) {
-        lesson = null
+        lesson = run.score?.let { id -> lessons.firstOrNull { it.id == id } }
         beatsPerMinute = run.beatsPerMinute.toDouble().coerceIn(MIN_BPM, MAX_BPM)
         notesPerBeat = run.notesPerBeat.coerceIn(1, 8)
         snareOn = run.snare
@@ -482,6 +485,10 @@ private fun DiagnosticsScreen(
         if (scripted.listen) mic.toggle()
         if (scripted.recordSeconds > 0) mic.startRecording(scripted.recordSeconds.toDouble(), scripted.label)
         if (scripted.play) controller.runScripted(scripted)
+        val scored = controller.lesson
+        if (scripted.score != null && scored != null && controller.playing) {
+            mic.score(Expansion.expand(scored.notation, controller.leadWithLeft), { controller.playing }, scope)
+        }
         scripted.calibrate?.let { mic.calibrate(it, scope) }
     }
     LaunchedEffect(Unit) {

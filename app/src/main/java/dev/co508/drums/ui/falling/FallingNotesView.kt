@@ -11,6 +11,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
@@ -21,7 +22,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.res.ResourcesCompat
 import dev.co508.drums.R
 import dev.co508.drums.lesson.StrokeDynamic
+import dev.co508.drums.scoring.Grade
+import dev.co508.drums.scoring.NoteMark
+import dev.co508.drums.scoring.ScoringSnapshot
 import dev.co508.drums.ui.notation.Glyph
+import kotlin.math.floor
 
 /** Hand colours (DECISIONS.md, "Falling Notes: Hands Are Lanes"). */
 object HandColors {
@@ -60,6 +65,8 @@ fun FallingNotesView(
     showCounts: Boolean = true,
     /** Light notes up as they cross the hit line: on while playing, off when stopped. */
     lightUp: Boolean = true,
+    /** Scoring marks (M5), read while drawing; null when not scoring. */
+    marks: () -> ScoringSnapshot? = { null },
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -142,6 +149,9 @@ fun FallingNotesView(
         )
 
         // Notes, from the first loop on (the count-in has none). A buzz's tail reaches up past its start.
+        val snapshot = marks()
+        // Stopped, the screen shows loop 0: give it the latest marks.
+        val loopShift = if (lightUp || snapshot == null) 0L else snapshot.latestLoop
         val longestTail = layout.notes.maxOfOrNull { it.buzzQuarters } ?: 0.0
         for (k in layout.loopsBetween(maxOf(0.0, visible.start - longestTail), visible.endInclusive)) {
             if (k < 0) continue
@@ -149,7 +159,26 @@ fun FallingNotesView(
             for (note in layout.notes) {
                 val p = base + note.position
                 if (p > visible.endInclusive || p + note.buzzQuarters < visible.start) continue
-                painter.draw(note, p, t)
+                val loop = k + loopShift
+                val mark = snapshot?.markFor(note.strokeIndex, loop)
+                painter.draw(
+                    note,
+                    p,
+                    t,
+                    mark,
+                    mark?.let { ScoringSnapshot.fade(loop - it.loop) } ?: 0f,
+                    mark?.loop == loop,
+                )
+            }
+        }
+        if (snapshot != null) {
+            val nowLoop = floor(t / layout.lengthQuarters).toLong() + loopShift
+            val centre = (left + right) / 2
+            for (extra in snapshot.extras) {
+                val fade = ScoringSnapshot.fade(nowLoop - extra.loop)
+                val p = extra.position - loopShift * layout.lengthQuarters
+                if (fade <= 0f || p !in visible) continue
+                drawExtra(centre, geometry.y(p, t), laneWidth * 0.12f, fade)
             }
         }
 
@@ -180,6 +209,33 @@ fun FallingNotesView(
     }
 }
 
+/** Timing-window colours (DECISIONS.md, "Showing How Far Off You Were"). */
+object GradeColors {
+    val green = Color(0xFF2E7D32)
+    val yellow = Color(0xFFF9A825)
+    val red = Color(0xFFD50000)
+    val extra = Color(0xFF6A1B9A)
+
+    fun of(grade: Grade?) =
+        when (grade) {
+            Grade.GREEN -> green
+            Grade.YELLOW -> yellow
+            Grade.RED, null -> red
+        }
+}
+
+/** An extra hit: a small × where it was heard. */
+internal fun DrawScope.drawExtra(
+    x: Float,
+    y: Float,
+    half: Float,
+    fade: Float,
+) {
+    val color = GradeColors.extra.copy(alpha = fade)
+    drawLine(color, Offset(x - half, y - half), Offset(x + half, y + half), half * 0.45f)
+    drawLine(color, Offset(x - half, y + half), Offset(x + half, y - half), half * 0.45f)
+}
+
 /** Draws notes with Bravura glyphs, sized by the staff space. */
 private class NotePainter(
     private val scope: DrawScope,
@@ -192,6 +248,9 @@ private class NotePainter(
         note: FallingNote,
         position: Double,
         now: Double,
+        mark: NoteMark? = null,
+        fade: Float = 0f,
+        ownLoop: Boolean = false,
     ) {
         val color = HandColors.of(note.lane)
         val x = geometry.laneCenterX(note.lane)
@@ -233,7 +292,32 @@ private class NotePainter(
             )
         }
         val headScale = scale * (1f + 0.2f * lit)
-        glyph(Glyph.NOTEHEAD_BLACK, x, y, headScale, color.copy(alpha = alpha))
+        // The hit mark goes behind the notehead, so it never hides the note itself.
+        if (mark?.kind == NoteMark.Kind.HIT && fade > 0f) hitMark(mark, x, y, scale, fade)
+        val missed = mark?.kind == NoteMark.Kind.MISS && fade > 0f
+        // A missed note is drawn hollow; in later loops, a faint ring recalls the miss.
+        glyph(
+            if (missed &&
+                ownLoop
+            ) {
+                Glyph.NOTEHEAD_HALF
+            } else {
+                Glyph.NOTEHEAD_BLACK
+            },
+            x,
+            y,
+            headScale,
+            color.copy(alpha = alpha),
+        )
+        if (missed && !ownLoop) {
+            scope.drawCircle(
+                GradeColors.red.copy(alpha = fade * 0.8f),
+                radius = staffSpace * 1.1f * scale,
+                center = Offset(x, y),
+                style = Stroke(width = staffSpace * 0.15f),
+            )
+        }
+        if (mark?.kind == NoteMark.Kind.HIT && fade > 0f) hitMark(mark, x, y, scale, fade)
         val halfHead = Glyph.NOTEHEAD_BLACK.width / 2 * staffSpace * headScale
         if (note.dynamic == StrokeDynamic.GHOST) {
             val gap = staffSpace * 0.15f
@@ -264,6 +348,24 @@ private class NotePainter(
                 color.copy(alpha = alpha),
             )
         }
+    }
+
+    /**
+     * Where the hit was, against the note: a bar across the lane, below the
+     * note if early (nearer the hit line), above if late, joined to it.
+     */
+    private fun hitMark(
+        mark: NoteMark,
+        x: Float,
+        y: Float,
+        scale: Float,
+        fade: Float,
+    ) {
+        val color = GradeColors.of(mark.grade).copy(alpha = fade)
+        val markY = y - (mark.offsetQuarters * geometry.pixelsPerQuarter).toFloat()
+        val half = staffSpace * 1.25f * scale
+        scope.drawLine(color, Offset(x, y), Offset(x, markY), staffSpace * 0.1f)
+        scope.drawLine(color, Offset(x - half, markY), Offset(x + half, markY), staffSpace * 0.24f * scale)
     }
 
     /** Draws [glyph] with the centre of its ink at ([cx], [cy]). */

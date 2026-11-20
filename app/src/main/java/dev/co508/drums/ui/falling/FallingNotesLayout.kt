@@ -27,6 +27,8 @@ data class FallingNote(
      * this, so it reads as part of its main note, not of that neighbour.
      */
     val laneGapQuarters: Double = Double.POSITIVE_INFINITY,
+    /** The stroke's index in [StrokeTimeline.strokes], for its scoring marks. */
+    val strokeIndex: Int = -1,
 )
 
 /** A grid line: a beat, or a bar line ([isBar]). */
@@ -67,7 +69,7 @@ class FallingNotesLayout(
     companion object {
         fun from(timeline: StrokeTimeline): FallingNotesLayout {
             val notes =
-                timeline.strokes.map { s ->
+                timeline.strokes.mapIndexed { index, s ->
                     FallingNote(
                         position = s.position.toDouble(),
                         lane =
@@ -79,6 +81,7 @@ class FallingNotesLayout(
                         dynamic = s.dynamic,
                         graceLead = s.graceLead,
                         buzzQuarters = s.buzzLength?.toDouble() ?: 0.0,
+                        strokeIndex = index,
                     )
                 }
             val grid = mutableListOf<GridLine>()

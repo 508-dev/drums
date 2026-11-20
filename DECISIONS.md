@@ -821,6 +821,79 @@ doesn't report, and the player's ear. Calibration measures it once and
   this phone's saved calibrations with Forget. The speaker check is offered
   only on the speaker; tap-along is always offered.
 
+### Matching Hits To Notes
+
+Scoring (#30) is turned on with **Score my playing** on the practice screen,
+a global setting like the view. That is where the microphone permission is
+asked for, after a short explanation. With scoring off or the permission
+denied, practice works exactly as before.
+
+**Windows.** Each strictness setting (Settings → Hit timing) has three bands,
+fixed in milliseconds:
+
+| Strictness | Green | Yellow | Matched at all |
+| --- | --- | --- | --- |
+| Relaxed | ±25 ms | ±50 ms | ±110 ms |
+| Standard (default) | ±15 ms | ±35 ms | ±80 ms |
+| Strict | ±10 ms | ±25 ms | ±60 ms |
+
+Each side of a note's windows, all three bands, is capped at **40% of the gap
+to the neighbouring main note** on that side, so neighbours' windows can't
+overlap. At 300 BPM 32nds (25 ms apart) that leaves ±10 ms: a stroke 12 ms
+off belongs to neither note, so it counts as a miss plus an extra, rather
+than being credited to the wrong note. Capping the bands, not scaling them,
+keeps "green" meaning the same number of milliseconds at every tempo.
+
+**Matching** runs on a background coroutine (`ScoringSession`), never on the
+audio or capture threads. Hits are mapped through the calibrated
+`HitTimeline` into output frames, and notes take their times from the
+transport's tempo map, so trainer steps and the tempo slider are followed.
+
+- Main notes are decided in order, once their late window has passed the
+  *settled* frame: now, less the route's calibrated delay and 80 ms for
+  detection.
+- Each main note takes the **nearest** unclaimed hit in its window, or is
+  missed.
+- A hit that can no longer belong to any note is an **extra**. Hits during the
+  count-in are ignored.
+- Stopping decides the notes before the stop and drops anything heard after
+  it, such as ringing tails.
+
+**Grace notes are optional.** At a 12 ms grace gap, a flam's two strokes are
+often one onset to the mic, or the player plays it flat. So the main stroke
+is matched first, and grace strokes then take only separate onsets *before*
+the main stroke's hit, within their own early window. With one onset, the
+main stroke is scored and the grace is "unheard": neither hit nor miss, and
+not drawn. With two or three onsets, each stroke is scored. A drag's graces
+take the onsets nearest the main stroke, in order. Grace results are counted
+apart from main-note totals.
+
+**Buzz rolls** are scored at their start. The roll then absorbs every onset
+until it ends, because a roll *is* a stream of bounces.
+
+**Marks** read an immutable `ScoringSnapshot` while drawing, which keeps
+each stroke's last three loops:
+
+- **A hit** is a bar at the hit's time, joined to the note and coloured by
+  band. In the falling view it is below the note if early (nearer the hit
+  line) and above if late. In the sheet view it is a dot left or right of the
+  note, below the staff.
+- **A missed note** is drawn hollow. In later loops a faint red ring recalls
+  the miss.
+- **An extra** is a purple ×.
+- **Fading:** marks are full strength in the loop they happened. On the
+  following loops' notes they fade to 35% and then 15%, so the notes still to
+  come show last time's result faintly without cluttering the screen.
+- **The sheet view** shows each written note's most recent pass, since repeats
+  and diddles play some notes several times a loop. When stopped, both views
+  show the latest loop's marks.
+
+On the ASUS, a scored speaker run of the Single Paradiddle at 90 BPM, with
+the phone hearing its own snare, matched 113 of 117 notes. Nearly all were
+green, at a steady +9 ms (the samples' late body against the click-based
+calibration). Its extras were the samples' second (wire) onsets through the
+speaker; speaker mode (#32) mutes the snare.
+
 ## Licensing And Distribution
 
 ### GPL-3.0-only, AGPL-3.0 For Any Future Server

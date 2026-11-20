@@ -17,7 +17,11 @@ import dev.co508.drums.playback.AudioClock
 import dev.co508.drums.playback.DrumKit
 import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.playback.Transport
+import dev.co508.drums.scoring.ScoringSession
 import dev.co508.drums.settings.PracticeSettingsStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 class DrumsApp : Application() {
     val settings: PracticeSettingsStore by lazy { PracticeSettingsStore(this) }
@@ -47,6 +51,14 @@ class DrumsApp : Application() {
 
     /** Places mic hits on the playback clock and the transport's musical timeline. */
     val hitTimeline: HitTimeline by lazy { HitTimeline(playback.clock, playback.transport.tempoMap) }
+
+    /** Application-lifetime work: scoring's background matching. */
+    val appScope: CoroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate) }
+
+    /** Scored runs (M5): the mic, matched against the playing lesson off the audio threads. */
+    val scoring: ScoringSession by lazy {
+        ScoringSession(mic, hitTimeline, playback.clock, playback.transport, appScope)
+    }
 
     /** The sounds lessons play with, loaded at the output's sample rate. */
     val kit: DrumKit by lazy {

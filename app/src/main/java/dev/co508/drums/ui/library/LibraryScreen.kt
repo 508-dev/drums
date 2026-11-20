@@ -40,6 +40,7 @@ import dev.co508.drums.history.HistoryData
 import dev.co508.drums.history.PracticeHistory
 import dev.co508.drums.lesson.Lesson
 import dev.co508.drums.lesson.Pack
+import dev.co508.drums.scoring.Strictness
 import dev.co508.drums.settings.AppDefaults
 import dev.co508.drums.settings.PracticePreferences
 import dev.co508.drums.settings.PracticeSettingsStore
@@ -83,6 +84,7 @@ fun LibraryScreen(
         preferencesReady = preferences != null && readError == null,
         onFavorite = store::toggleFavorite,
         onDefaults = store::saveDefaults,
+        onStrictness = { store.saveStrictness(it.name) },
         appVersion = version,
         history = { HistoryScreen(history, packs) },
         calibration = calibration,
@@ -103,6 +105,7 @@ internal fun LibraryNavigation(
     message: String? = null,
     onRetry: (() -> Unit)? = null,
     onDefaults: (AppDefaults) -> Unit = {},
+    onStrictness: (Strictness) -> Unit = {},
     appVersion: String = "unknown",
     history: @Composable () -> Unit = { HistoryContent(HistoryData(), packs) },
     calibration: @Composable () -> Unit = {},
@@ -167,6 +170,8 @@ internal fun LibraryNavigation(
                         onDefaults,
                         onAbout = { savedRoute = route.copy(destination = LibraryDestination.ABOUT) },
                         onCalibration = { savedRoute = route.copy(destination = LibraryDestination.CALIBRATION) },
+                        strictness = Strictness.of(preferences.strictness),
+                        onStrictness = { onStrictness(it) },
                     )
                 LibraryDestination.CALIBRATION -> calibration()
                 LibraryDestination.ABOUT ->
