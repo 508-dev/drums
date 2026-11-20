@@ -18,6 +18,7 @@ import dev.co508.drums.playback.DrumKit
 import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.playback.Transport
 import dev.co508.drums.scoring.ScoringSession
+import dev.co508.drums.scoring.SpeakerMode
 import dev.co508.drums.settings.PracticeSettingsStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -59,6 +60,9 @@ class DrumsApp : Application() {
     val scoring: ScoringSession by lazy {
         ScoringSession(mic, hitTimeline, playback.clock, playback.transport, appScope)
     }
+
+    /** Speaker mode for scored runs on the phone speaker: snare muted, a click the mic ignores. */
+    val speakerMode: SpeakerMode by lazy { SpeakerMode(playback.transport) }
 
     /** The sounds lessons play with, loaded at the output's sample rate. */
     val kit: DrumKit by lazy {

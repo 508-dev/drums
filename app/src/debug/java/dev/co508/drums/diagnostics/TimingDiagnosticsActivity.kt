@@ -134,6 +134,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
             )
         micTools.saveCalibration = { saveMeasuredCalibration(it, app.settings) }
         micTools.scoring = app.scoring
+        micTools.speakerMode = app.speakerMode
         mic = micTools
         lifecycleScope.launch { app.settings.data.collect { latestPreferences = it } }
         session.onInterrupted = { reason ->
@@ -161,6 +162,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
                     },
                 label = intent.getStringExtra(EXTRA_LABEL),
                 score = intent.getStringExtra(EXTRA_SCORE),
+                speakerMode = intent.getBooleanExtra(EXTRA_SPEAKER_MODE, false),
             )
         setContent {
             MaterialTheme {
@@ -192,6 +194,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         mic?.stop()
+        (application as DrumsApp).speakerMode.exit()
         session.close()
     }
 
@@ -208,6 +211,7 @@ class TimingDiagnosticsActivity : ComponentActivity() {
         const val EXTRA_LABEL = "label"
         const val EXTRA_CALIBRATE = "calibrate"
         const val EXTRA_SCORE = "score"
+        const val EXTRA_SPEAKER_MODE = "speakerMode"
         const val DEFAULT_EXIT_TEST_SECONDS = 600
         const val DEBUG_PACK_FOLDER = "packs/debug"
 
@@ -234,6 +238,8 @@ private data class ScriptedRun(
     val calibrate: CalibrationMethod?,
     /** A lesson ID to play with scoring on (`--es score single-paradiddle`). */
     val score: String?,
+    /** Speaker mode: snare muted, the low click, and the speaker-mode detector (`--ez speakerMode true`). */
+    val speakerMode: Boolean = false,
 )
 
 private class DiagnosticsController(
@@ -482,6 +488,7 @@ private fun DiagnosticsScreen(
     val view = LocalView.current
     val scope = rememberCoroutineScope()
     LaunchedEffect(Unit) {
+        if (scripted.speakerMode) mic.enterSpeakerMode()
         if (scripted.listen) mic.toggle()
         if (scripted.recordSeconds > 0) mic.startRecording(scripted.recordSeconds.toDouble(), scripted.label)
         if (scripted.play) controller.runScripted(scripted)

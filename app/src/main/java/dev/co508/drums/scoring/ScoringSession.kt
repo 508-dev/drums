@@ -5,7 +5,9 @@ import androidx.annotation.RequiresPermission
 import dev.co508.drums.hits.DetectedHit
 import dev.co508.drums.hits.HitTimeline
 import dev.co508.drums.hits.MicCapture
+import dev.co508.drums.hits.OnsetDetector
 import dev.co508.drums.playback.AudioClock
+import dev.co508.drums.playback.Pattern
 import dev.co508.drums.playback.TempoMap
 import dev.co508.drums.playback.Transport
 import kotlinx.coroutines.CoroutineScope
@@ -47,6 +49,11 @@ class ScoringSession(
 
     private var job: Job? = null
 
+    /** Speaker mode's click guard of the latest run, for diagnostics: (leak dBFS, echoes dropped). */
+    @Volatile
+    var clickGuardReport: Pair<Double, Int>? = null
+        private set
+
     @Volatile private var stopRequestedAt = 0L
 
     private val map =
@@ -68,11 +75,19 @@ class ScoringSession(
         strictness: Strictness,
         loops: Boolean,
         latencyMillis: Double,
+        /**
+         * Speaker mode, with the pattern whose clicks are playing: the detector
+         * filters the speaker click out, and a [ClickGuard] drops its echoes.
+         */
+        speakerClicks: Pattern? = null,
         /** Called on the main thread with the final snapshot, once the run is decided (not if cut off). */
         onFinished: (ScoringSnapshot) -> Unit = {},
     ): Boolean {
         stopNow()
         timeline.latencyNanos = (latencyMillis * NANOS_PER_MILLI).toLong()
+        mic.detectorConfig = if (speakerClicks != null) SpeakerMode.DETECTOR else OnsetDetector.Config()
+        val guard = speakerClicks?.let { ClickGuard.of(it, transport.sampleRate) }
+        clickGuardReport = guard?.let { it.leakDb to it.echoesDropped }
         if (!mic.start()) return false
         val hit = DetectedHit()
         while (mic.poll(hit)) Unit
@@ -84,7 +99,14 @@ class ScoringSession(
             scope.launch(Dispatchers.Default) {
                 try {
                     while (isActive) {
-                        while (mic.poll(hit)) matcher.addHit(timeline.outputFrame(hit.nanoTime))
+                        while (mic.poll(hit)) {
+                            val frame = timeline.outputFrame(hit.nanoTime)
+                            if (guard?.isClickEcho(frame, hit.levelDb.toDouble(), map) == true) {
+                                clickGuardReport = guard.leakDb to guard.echoesDropped
+                                continue
+                            }
+                            matcher.addHit(frame)
+                        }
                         val gap = transport.graceGapMillis * transport.sampleRate / 1000.0
                         val stopAt = stopRequestedAt
                         if (stopAt != 0L && nanoTime() - stopAt >= settleNanos()) {

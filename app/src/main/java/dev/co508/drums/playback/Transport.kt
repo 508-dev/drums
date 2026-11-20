@@ -60,6 +60,26 @@ class Transport(
     private val command = AtomicReference<Command?>(null)
     private val pendingTempo = AtomicLong(NO_TEMPO)
 
+    // The metronome's sounds: swappable for speaker mode, read once per click.
+    @Volatile private var clickSound = click
+
+    @Volatile private var accentClickSound = accentClick
+
+    @Volatile private var clickLeadFrames = maxOf(click.attackFrames, accentClick.attackFrames)
+
+    /** Plays the metronome with [normal] and [accent] (speaker mode) from the next block. */
+    fun setClickSounds(
+        normal: Sound,
+        accent: Sound,
+    ) {
+        clickSound = normal
+        accentClickSound = accent
+        clickLeadFrames = maxOf(normal.attackFrames, accent.attackFrames)
+    }
+
+    /** Back to the usual metronome. */
+    fun resetClickSounds() = setClickSounds(click, accentClick)
+
     /** Metronome volume, 0 for off. */
     @Volatile
     var clickVolume = 1f
@@ -99,6 +119,7 @@ class Transport(
     private var tempo = 0.0
     private var loopIndex = 0L
     private var windowEnd = 0.0
+    private var clickWindowEnd = 0.0
     private val leadWindowEnds = DoubleArray(Pattern.MAX_LEAD_LEVEL + 1)
     private var windowIncludesStart = false
     private var expectedFrame = -1L
@@ -185,7 +206,11 @@ class Transport(
             }
         }
 
-        emit(playing, CLICKS, windowEnd, end, 0.0, fromFrame, toFrame, sink)
+        // Clicks lead by their own attack (0 for the usual click), like instrument sounds.
+        val clickLead = clickLeadFrames.toDouble()
+        val clickEnd = maxOf(clickWindowEnd, if (clickLead > 0) tempoMap.positionAt(lastFrame + clickLead) else end)
+        emit(playing, CLICKS, clickWindowEnd, clickEnd, clickLead, fromFrame, toFrame, sink)
+        clickWindowEnd = clickEnd
         windowEnd = end
         val gapFrames = graceGapMillis.coerceIn(0.0, MAX_GRACE_GAP_MILLIS) * sampleRate / 1000.0
         // Instrument sounds start early by their attack, so the attack is heard on the beat.
@@ -214,6 +239,7 @@ class Transport(
         tempoMap.begin(fromFrame.toDouble(), start, rateOf(tempo, playing))
         loopIndex = if (playing.countIn) -1 else 0
         windowEnd = start
+        clickWindowEnd = start
         leadWindowEnds.fill(start)
         windowIncludesStart = true
         state = State.PLAYING
@@ -265,13 +291,13 @@ class Transport(
                 val position = (m - pattern.countInBeats) * pattern.beatQuarters
                 if (inWindow(position, start, end)) {
                     sink.play(
-                        frameOf(position, 0.0, fromFrame, toFrame),
+                        frameOf(position, leadFrames, fromFrame, toFrame),
                         if (m ==
                             0
                         ) {
-                            accentClick
+                            accentClickSound
                         } else {
-                            click
+                            clickSound
                         },
                         clickGain,
                         0f,
@@ -292,8 +318,8 @@ class Transport(
                 while (i < clicks.size && base + clicks[i] <= end) {
                     val position = base + clicks[i]
                     if (inWindow(position, start, end)) {
-                        val sound = if (pattern.clickAccents[i]) accentClick else click
-                        sink.play(frameOf(position, 0.0, fromFrame, toFrame), sound, clickGain, 0f)
+                        val sound = if (pattern.clickAccents[i]) accentClickSound else clickSound
+                        sink.play(frameOf(position, leadFrames, fromFrame, toFrame), sound, clickGain, 0f)
                     }
                     i++
                 }

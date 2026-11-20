@@ -368,6 +368,28 @@ class TransportTest {
     }
 
     @Test
+    fun clickSoundsWithAnAttackStartThatMuchEarly() {
+        val t = transport()
+        t.setClickSounds(
+            Sound("soft", FloatArray(600), attackFrames = 400),
+            Sound("soft-accent", FloatArray(600), attackFrames = 400),
+        )
+        t.start(PlaySettings(strokes(4.0, 1.0), beatsPerMinute = 120.0))
+        val d = Driver(t, 240)
+        d.runUntil(4 * 24_000L + 1)
+        // The count-in's clicks and the first beat's: 400 frames early; the snare isn't moved.
+        assertEquals(
+            listOf(0L, 24_000L - 400, 48_000L - 400, 72_000L - 400, 96_000L - 400),
+            d.played
+                .filter {
+                    it.sound.startsWith("soft")
+                }.map { it.frame },
+        )
+        assertEquals(96_000L, d.ofSound("snare").first().frame)
+        t.resetClickSounds()
+    }
+
+    @Test
     fun anExtraAttackLeadMovesOnlyTheInstrument() {
         val t = transport()
         t.extraAttackLeadMillis = 10.0

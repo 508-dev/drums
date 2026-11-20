@@ -54,12 +54,14 @@ import dev.co508.drums.lesson.Notation
 import dev.co508.drums.lesson.StrokeTimeline
 import dev.co508.drums.playback.DrumKit
 import dev.co508.drums.playback.LessonPattern
+import dev.co508.drums.playback.Pattern
 import dev.co508.drums.playback.PlaySettings
 import dev.co508.drums.playback.PlaybackSession
 import dev.co508.drums.playback.Transport
 import dev.co508.drums.scoring.ScoredLesson
 import dev.co508.drums.scoring.ScoringSession
 import dev.co508.drums.scoring.ScoringSnapshot
+import dev.co508.drums.scoring.SpeakerMode
 import dev.co508.drums.scoring.Strictness
 import dev.co508.drums.scoring.toSessionScore
 import dev.co508.drums.settings.LessonPreferences
@@ -84,6 +86,7 @@ fun PracticeScreen(
     onBack: () -> Unit,
     scoring: ScoringSession? = null,
     history: PracticeHistory? = null,
+    speakerMode: SpeakerMode? = null,
 ) {
     var initial by remember(lesson.preferenceKey) { mutableStateOf<PracticePreferences?>(null) }
     var loadError by remember { mutableStateOf(false) }
@@ -100,6 +103,7 @@ fun PracticeScreen(
         onDispose {
             // Finishes in the background, so the run's score is still saved.
             scoring?.stop()
+            speakerMode?.exit()
             session.close()
         }
     }
@@ -128,6 +132,7 @@ fun PracticeScreen(
     var explainMic by remember { mutableStateOf(false) }
     var scoringNote by remember { mutableStateOf<String?>(null) }
     var scoredRun by remember { mutableStateOf(false) }
+    var onSpeaker by remember { mutableStateOf(false) }
     var lastScore by remember(lesson.preferenceKey) { mutableStateOf<SessionScore?>(null) }
     val micPermission =
         rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -143,8 +148,12 @@ fun PracticeScreen(
         settings = value.normalized()
         store.saveLesson(lesson, settings)
         session.transport.clickVolume = if (settings.click) settings.clickVolume else 0f
-        session.transport.instrumentVolume = if (settings.snare) settings.snareVolume else 0f
+        val snare = if (settings.snare) settings.snareVolume else 0f
+        session.transport.instrumentVolume = speakerMode?.instrumentVolume(snare) ?: snare
     }
+
+    // With scoring on, keep the output open so its route (speaker or headphones) is known before Play.
+    LaunchedEffect(scoringOn) { if (scoringOn) session.open() }
 
     LaunchedEffect(session, lesson.preferenceKey) {
         var highlightUntil = 0L
@@ -155,6 +164,7 @@ fun PracticeScreen(
                 session.updatePracticeLog()
                 if (t >= nextOutputCheck) {
                     session.checkOutput()
+                    onSpeaker = SpeakerMode.appliesTo(session.engine.stats().outputRoute)
                     nextOutputCheck = t + 1_000_000_000L
                 }
                 val frame = session.clock.visualFrameAt(t)
@@ -184,6 +194,15 @@ fun PracticeScreen(
                 }
                 playing = session.isPlaying
                 if (!playing && scoring?.isListening == true) scoring.stop()
+                if (speakerMode != null) {
+                    if (playing && scoredRun && !speakerMode.isActive && onSpeaker) {
+                        // The route became known (or changed to the speaker) after Play.
+                        speakerMode.enter()
+                    } else if (!playing && speakerMode.isActive) {
+                        speakerMode.exit()
+                        change(settings) // The snare's own volume again.
+                    }
+                }
                 tempoStepped = playing && t < highlightUntil
                 if (!playing) progress = null
             }
@@ -257,8 +276,27 @@ fun PracticeScreen(
                 session.stop()
                 scoring?.stop()
             } else {
+                // A scored run on the phone speaker mutes the snare and swaps the click from the first note.
+                val route = session.engine.stats().outputRoute
+                if (scoringOn && scoring != null && micGranted(context) && SpeakerMode.appliesTo(route)) {
+                    speakerMode?.enter()
+                }
                 change(settings)
-                val playSettings = settings.playSettings(pattern)
+                // Speaker mode learns how loudly the click leaks into the mic from the count-in.
+                val playSettings =
+                    settings.playSettings(pattern).let {
+                        if (speakerMode?.isActive == true && !it.countIn) {
+                            PlaySettings(
+                                it.pattern,
+                                it.beatsPerMinute,
+                                countIn = true,
+                                loop = it.loop,
+                                trainer = it.trainer,
+                            )
+                        } else {
+                            it
+                        }
+                    }
                 heardTempo = playSettings.beatsPerMinute.roundToInt()
                 message =
                     if (session.play(
@@ -286,6 +324,7 @@ fun PracticeScreen(
                             strictness,
                             playSettings.loop,
                             calibration?.latencyMillis ?: 0.0,
+                            if (speakerMode?.isActive == true) playSettings.pattern else null,
                         ) { final ->
                             val stats = final.stats
                             if (runId != null && stats.hits + stats.misses > 0) {
@@ -294,6 +333,10 @@ fun PracticeScreen(
                                 lastScore = score
                             }
                         }
+                    if (!scoredRun && speakerMode?.isActive == true) {
+                        speakerMode.exit()
+                        change(settings)
+                    }
                     scoringNote =
                         when {
                             !scoredRun -> "Couldn't open the microphone; this run isn't scored."
@@ -320,7 +363,10 @@ fun PracticeScreen(
                     }
                 }
             },
-        scoringNote = scoringNote,
+        scoringNote =
+            listOfNotNull(scoringNote, if (scoringOn && onSpeaker) SPEAKER_NOTE else null)
+                .joinToString("\n")
+                .ifEmpty { null },
         marks = { if (scoringOn || scoredRun) scoring?.snapshot else null },
         runSummary = if (playing) null else lastScore?.let { scoreLines(it) },
         onBack = {
@@ -482,6 +528,11 @@ internal fun RunSummaryCard(lines: List<String>) {
     }
 }
 
+/** The headphones recommendation (DECISIONS.md, "Speaker Mode"). */
+internal const val SPEAKER_NOTE =
+    "Headphones work best. On the phone speaker, scored runs mute the snare and play a low click " +
+        "the microphone ignores, so it hears only you."
+
 private fun micGranted(context: Context): Boolean =
     ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
@@ -493,8 +544,9 @@ private fun startScoring(
     strictness: Strictness,
     loops: Boolean,
     latencyMillis: Double,
+    speakerClicks: Pattern?,
     onFinished: (ScoringSnapshot) -> Unit,
-): Boolean = scoring.start(ScoredLesson.from(timeline), strictness, loops, latencyMillis, onFinished)
+): Boolean = scoring.start(ScoredLesson.from(timeline), strictness, loops, latencyMillis, speakerClicks, onFinished)
 
 /** The sheet must show the same swapped grace and main hands as the expanded playback. */
 internal fun Notation.forDisplay(leadWithLeft: Boolean): Notation =

@@ -3,6 +3,7 @@ package dev.co508.drums.audio
 import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.exp
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -29,6 +30,34 @@ object PlaceholderSounds {
         }
         finish(samples, sampleRate, peak)
         return Sound(if (accented) "click-accent" else "click", samples)
+    }
+
+    /**
+     * The click for scored runs on the phone speaker (DECISIONS.md, "Speaker
+     * Mode"): a low tone in a Gaussian envelope. A Gaussian's spectrum is
+     * Gaussian too, so the click has no broadband attack for the onset detector
+     * to hear; in speaker mode the detector also high-passes harder and notches
+     * the click's pitches and their 2nd and 3rd harmonics. Its attack is soft,
+     * so its [Sound.attackFrames] (its perceived onset) is a few ms in, and the
+     * transport starts it that much early.
+     */
+    fun speakerClick(
+        sampleRate: Int,
+        accented: Boolean,
+    ): Sound {
+        val frequency = if (accented) SPEAKER_ACCENT_CLICK_HZ else SPEAKER_CLICK_HZ
+        val peak = if (accented) 0.9f else 0.6f
+        val centre = SPEAKER_CLICK_SIGMA_SECONDS * 3.5
+        val samples = FloatArray(frames(sampleRate, 2 * centre))
+        for (i in samples.indices) {
+            val t = i.toDouble() / sampleRate
+            val z = (t - centre) / SPEAKER_CLICK_SIGMA_SECONDS
+            samples[i] = (sin(2 * PI * frequency * t) * exp(-0.5 * z * z)).toFloat()
+        }
+        val max = samples.maxOf { abs(it) }
+        for (i in samples.indices) samples[i] *= peak / max
+        val attack = SampledSounds.perceivedAttack(samples, sampleRate).roundToInt()
+        return Sound(if (accented) "speaker-click-accent" else "speaker-click", samples, attackFrames = attack)
     }
 
     /**
@@ -155,6 +184,9 @@ object PlaceholderSounds {
     private const val ACCENT_CLICK_HZ = 1_600.0
     private const val CLICK_SECONDS = 0.03
     private const val CLICK_DECAY_SECONDS = 0.006
+    const val SPEAKER_CLICK_HZ = 500.0
+    const val SPEAKER_ACCENT_CLICK_HZ = 630.0
+    private const val SPEAKER_CLICK_SIGMA_SECONDS = 0.004
     private const val SNARE_SECONDS = 0.25
     private const val BUZZ_SECONDS = 8.0
     private const val BOUNCE_SECONDS = 0.03
