@@ -30,6 +30,8 @@ internal class RecoveringAudioOutput(
 
     @Volatile private var device: String? = null
 
+    @Volatile private var route: OutputRoute? = null
+
     @Volatile private var underruns = 0
 
     @Volatile var recovering = false
@@ -109,6 +111,7 @@ internal class RecoveringAudioOutput(
                     bufferSize = current.bufferSizeFrames
                     fast = current.lowLatencyGranted
                     device = current.outputDevice
+                    route = current.outputRoute
                     val block = FloatArray(framesPerBurst * CHANNELS)
                     var offset = block.size
                     var prefilled = 0
@@ -191,6 +194,7 @@ internal class RecoveringAudioOutput(
         synchronized(trackLock) {
             try {
                 track?.outputDevice?.let { device = it }
+                track?.outputRoute?.let { route = it }
             } catch (
                 _: RuntimeException,
             ) {
@@ -213,6 +217,7 @@ internal class RecoveringAudioOutput(
             recoveries = recoveries,
             lastWriteError = lastWriteError,
             lastRecoveryReason = lastRecoveryReason,
+            outputRoute = route,
         )
     }
 

@@ -21,8 +21,11 @@ a phone, and how real pad recordings become test fixtures. The design is in
    fallback.
 4. **Shared clock** (`hits/HitTimeline`): `AudioClock.frameAt` maps a hit's
    time to the output frame heard at that moment, and the transport's
-   `TempoMap` maps that frame to a musical position. Calibration (#29) supplies
+   `TempoMap` maps that frame to a musical position. Calibration supplies
    `latencyNanos`.
+5. **Calibration** (`hits/Calibrator`, `hits/CalibrationMath`, Settings → Hit
+   timing calibration): a speaker loopback or a tap-along, stored per phone
+   and output route. See below.
 
 Hits are queued (`hits/HitQueue`, lock-free) for one consumer: the diagnostics
 screen now, and scoring from #30 on.
@@ -98,6 +101,25 @@ The volume was returned to 0 afterwards. The raw recording made to diagnose the
 bursts was ambient sound from the maintainer's home, so it was deleted rather
 than committed. Real pad playing, the actual target, still needs the
 maintainer (below).
+
+## Calibration
+
+The design is in DECISIONS.md, "Calibration Per Output Route". The debug
+screen runs the same calibration as Settings and saves the result:
+
+```bash
+$ADB shell am start -n $A --es calibrate LOOPBACK   # or TAP_ALONG
+$ADB logcat -s RatamatapHits | grep calibration
+```
+
+While listening, the debug **Microphone** panel takes the current route's
+saved calibration off every hit (its offsets line says "calibrated +35.0 ms"),
+as scoring will.
+
+On the ASUS, with the speaker at volume 8/30, three consecutive loopback
+calibrations measured 35.03, 34.97 and 34.92 ms, each with about 0.1 ms of
+spread. With the result applied, the click loopback's offsets centred on
+−0.08 ms (22 clicks).
 
 ## Recording pad fixtures (maintainer)
 

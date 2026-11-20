@@ -1,5 +1,6 @@
 package dev.co508.drums.settings
 
+import dev.co508.drums.audio.OutputRoute
 import dev.co508.drums.lesson.Lesson
 import dev.co508.drums.playback.Pattern
 import dev.co508.drums.playback.PlaySettings
@@ -16,6 +17,8 @@ data class PracticePreferences(
     val pixelsPerBeat: Float = DEFAULT_ZOOM,
     val favorites: Set<String> = emptySet(),
     val defaults: AppDefaults = AppDefaults(),
+    /** Hit-detection delays, keyed by [calibrationKey]. */
+    val calibrations: Map<String, StoredCalibration> = emptyMap(),
 ) {
     val zoomPixelsPerBeat: Float
         get() = if (pixelsPerBeat.isFinite()) pixelsPerBeat.coerceIn(48f, 480f) else DEFAULT_ZOOM
@@ -42,7 +45,34 @@ data class PracticePreferences(
         get() = PracticeView.entries.firstOrNull { it.name == view } ?: PracticeView.FALLING_NOTES
 
     fun isFavorite(lesson: Lesson): Boolean = lesson.preferenceKey in favorites
+
+    /** This phone's calibration for [route], if it has one. */
+    fun calibration(
+        phone: String,
+        route: OutputRoute,
+    ): StoredCalibration? = calibrations[calibrationKey(phone, route)]
 }
+
+/**
+ * Calibrations are per phone as well as per route: settings are backed up and
+ * may be restored onto a different phone, whose delays are its own.
+ */
+fun calibrationKey(
+    phone: String,
+    route: OutputRoute,
+): String = "$phone|${route.key}"
+
+/** A measured hit-detection delay (DECISIONS.md, "Calibration Per Output Route"). */
+@Serializable
+data class StoredCalibration(
+    val latencyMillis: Double,
+    val spreadMillis: Double,
+    /** A [dev.co508.drums.hits.CalibrationMethod] name. */
+    val method: String,
+    /** The route's label when measured, for the list of saved calibrations. */
+    val routeLabel: String,
+    val savedAtMillis: Long,
+)
 
 // Length-prefixed pack ID avoids collisions even if future imported IDs contain separators.
 val Lesson.preferenceKey: String get() = "${packId.length}:$packId$id"

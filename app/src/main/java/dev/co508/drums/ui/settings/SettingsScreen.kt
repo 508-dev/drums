@@ -29,6 +29,7 @@ internal fun SettingsContent(
     enabled: Boolean,
     onChange: (AppDefaults) -> Unit,
     onAbout: () -> Unit,
+    onCalibration: () -> Unit = {},
 ) {
     val value = defaults.normalized()
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -73,6 +74,9 @@ internal fun SettingsContent(
             }
             TextButton(onClick = { onChange(value.copy(visualOffsetMillis = 0)) }, enabled = enabled) { Text("Reset") }
         }
+        Text("Hit timing", style = MaterialTheme.typography.titleMedium)
+        Text("Measure your phone's delay per output, so scored hits line up with what you hear.")
+        OutlinedButton(onClick = onCalibration) { Text("Calibrate hit timing") }
         TextButton(onClick = onAbout) { Text("About") }
     }
 }

@@ -22,12 +22,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.co508.drums.audio.OutputRoute
+import dev.co508.drums.hits.CalibrationMethod
+import dev.co508.drums.hits.Calibrator
 import dev.co508.drums.hits.DetectedHit
 import dev.co508.drums.hits.HitTimeline
 import dev.co508.drums.hits.MicCapture
 import dev.co508.drums.playback.PlaybackSession
+import dev.co508.drums.ui.settings.resultText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -68,6 +73,8 @@ internal class MicDiagnostics(
     private val hasPermission: () -> Boolean,
     private val requestPermission: () -> Unit,
     private val describeRun: () -> String,
+    /** The stored calibration for a route, in ms, if there is one. */
+    private val calibrationMillis: (OutputRoute) -> Double? = { null },
 ) {
     var state by mutableStateOf(MicPanelState())
         private set
@@ -104,9 +111,58 @@ internal class MicDiagnostics(
             return
         }
         mic.tap = recorder
+        applyCalibration()
         state = state.copy(listening = true, message = null)
         Log.i(HITS_TAG, "listening ${mic.stats()} device=${Build.MANUFACTURER} ${Build.MODEL}")
     }
+
+    /** Takes the current route's stored calibration off every hit, as scoring will. */
+    private fun applyCalibration() {
+        val route = session.engine.stats().outputRoute
+        val millis = route?.let(calibrationMillis)
+        timeline.latencyNanos = ((millis ?: 0.0) * 1_000_000).toLong()
+        Log.i(HITS_TAG, "calibration route=${route?.key} latencyMs=$millis")
+        calibrationNote = if (millis == null) "uncalibrated" else "calibrated %+.1f ms".format(Locale.ROOT, millis)
+    }
+
+    private var calibrationNote = "uncalibrated"
+    private var calibrator: Calibrator? = null
+
+    /** Runs a Settings calibration (adb: `--es calibrate LOOPBACK`) and saves its result. */
+    @SuppressLint("MissingPermission")
+    fun calibrate(
+        method: CalibrationMethod,
+        scope: CoroutineScope,
+    ) {
+        if (!hasPermission()) {
+            state = state.copy(message = "Grant the microphone permission first.")
+            return
+        }
+        if (mic.isRunning) stop()
+        val run = Calibrator(session, mic)
+        calibrator = run
+        val previousHandler = session.onInterrupted
+        session.onInterrupted = run::onInterrupted
+        run.start(method)
+        Log.i(
+            HITS_TAG,
+            "calibration start method=$method route=${session.engine.stats().outputRoute} state=${run.state}",
+        )
+        scope.launch {
+            while (run.state is Calibrator.State.Listening) {
+                run.tick()
+                delay(50)
+            }
+            session.onInterrupted = previousHandler
+            val finished = run.state
+            Log.i(HITS_TAG, "calibration result $finished")
+            if (finished is Calibrator.State.Finished) saveCalibration(finished)
+            state = state.copy(message = "Calibration: ${resultText(finished)?.first ?: finished}")
+            calibrator = null
+        }
+    }
+
+    var saveCalibration: (Calibrator.State.Finished) -> Unit = {}
 
     fun stop() {
         if (recorder.isRecording) recorder.end()
@@ -184,11 +240,12 @@ internal class MicDiagnostics(
             if (offsets.count == 0) {
                 ""
             } else {
-                "Offsets   n=${offsets.count}, mean %+.2f ms, SD %.2f ms (vs nearest %s)".format(
+                "Offsets   n=${offsets.count}, mean %+.2f ms, SD %.2f ms (vs nearest %s; %s)".format(
                     Locale.ROOT,
                     offsets.mean,
                     offsets.standardDeviation,
                     if (state.includeClicks) "stroke or click" else "stroke",
+                    calibrationNote,
                 )
             }
         state =

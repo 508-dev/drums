@@ -6,6 +6,7 @@ internal interface PcmOutputTrack {
     val bufferSizeFrames: Int
     val lowLatencyGranted: Boolean
     val outputDevice: String?
+    val outputRoute: OutputRoute? get() = null
     val underrunCount: Int
 
     fun resizeBuffer(frames: Int)

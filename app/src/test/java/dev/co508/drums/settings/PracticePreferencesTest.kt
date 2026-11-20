@@ -2,6 +2,7 @@ package dev.co508.drums.settings
 
 import androidx.datastore.core.CorruptionException
 import dev.co508.drums.audio.EventSink
+import dev.co508.drums.audio.OutputRoute
 import dev.co508.drums.audio.Sound
 import dev.co508.drums.lesson.Expansion
 import dev.co508.drums.lesson.Family
@@ -153,6 +154,23 @@ class PracticePreferencesTest {
             assertEquals(original, PracticePreferencesSerializer.readFrom(ByteArrayInputStream(output.toByteArray())))
             assertEquals(PracticeView.FALLING_NOTES, read("""{"future":42,"view":"FUTURE"}""").practiceView)
             assertEquals(LessonPreferences(), read("""{"lessons":{"old":{}}}""").lessons["old"])
+        }
+
+    @Test
+    fun calibrationsArePerPhoneAndRouteAndSurviveSerialization() =
+        runBlocking {
+            val speaker = OutputRoute(OutputRoute.Kind.SPEAKER, "phone")
+            val value = StoredCalibration(35.04, 0.15, "LOOPBACK", "Phone speaker", 1_763_600_000_000L)
+            val preferences = PracticePreferences(calibrations = mapOf(calibrationKey("asus AI2202", speaker) to value))
+            assertEquals(value, preferences.calibration("asus AI2202", speaker))
+            // Restored onto another phone, or another route: not calibrated.
+            assertEquals(null, preferences.calibration("Sony XQ-FE72", speaker))
+            assertEquals(null, preferences.calibration("asus AI2202", OutputRoute(OutputRoute.Kind.WIRED, "x")))
+            val out = java.io.ByteArrayOutputStream()
+            PracticePreferencesSerializer.writeTo(preferences, out)
+            assertEquals(preferences, read(out.toString()))
+            // Settings from before calibration existed still load.
+            assertEquals(emptyMap<String, StoredCalibration>(), read("{\"view\":\"SHEET\"}").calibrations)
         }
 
     @Test(expected = CorruptionException::class)

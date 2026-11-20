@@ -228,6 +228,7 @@ class AudioTrackEngine(
         override val bufferSizeFrames get() = native.bufferSizeInFrames
         override val lowLatencyGranted get() = native.performanceMode == AudioTrack.PERFORMANCE_MODE_LOW_LATENCY
         override val outputDevice get() = native.routedDevice?.let(::describe)
+        override val outputRoute get() = native.routedDevice?.let { OutputRoute.of(it.type, it.productName.toString()) }
         override val underrunCount get() = native.underrunCount
 
         override fun resizeBuffer(frames: Int) {

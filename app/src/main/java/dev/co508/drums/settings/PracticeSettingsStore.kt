@@ -120,6 +120,17 @@ class PracticeSettingsStore(
         )
     }
 
+    fun saveCalibration(
+        key: String,
+        value: StoredCalibration,
+    ) {
+        writes.trySend(Operation.Edit { it.copy(calibrations = it.calibrations + (key to value)) })
+    }
+
+    fun forgetCalibration(key: String) {
+        writes.trySend(Operation.Edit { it.copy(calibrations = it.calibrations - key) })
+    }
+
     /** Opening another screen must see earlier accepted edits, even during rapid navigation. */
     suspend fun snapshot(): PracticePreferences {
         val result = CompletableDeferred<PracticePreferences>()
